@@ -29,7 +29,7 @@
         </Border>
         
         <StackPanel Grid.Row="2" Grid.Column="0" Orientation="Horizontal" HorizontalAlignment="Center" VerticalAlignment="Center" Margin="10">
-            <Button Click="ImageCompressImageCompress" Content="压缩"  Margin="5"/>
+            <Button Click="ImageCompress" Content="压缩"  Margin="5"/>
         </StackPanel>
         
         <StackPanel Grid.Row="2" Grid.Column="1" Orientation="Horizontal" HorizontalAlignment="Center" VerticalAlignment="Center" Margin="10">

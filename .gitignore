@@ -1,3 +1,7 @@
 .idea/
 bin/
 obj/
+cmake-build-debug/
+cmake-build-release/
+cmake-build-debug-qt_mingw/
+cmake-build-release-qt_mingw/

@@ -21,13 +21,13 @@
         <Border
             Grid.Row="1" HorizontalAlignment="Stretch" BorderBrush="Black" BorderThickness="1" Margin="10" Grid.Column="0">
             <Grid AllowDrop="True" DragEnter="TxtDragEnter" Drop="TxtDrop">
-                <TextBlock Text="拖放待压缩文本至此处(仅支持txt Files)" HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                <TextBlock Text="拖放待压缩文本至此处(仅支持.txt Files)" HorizontalAlignment="Center" VerticalAlignment="Center"/>
             </Grid>
         </Border>
         
         <Border Grid.Row="1" HorizontalAlignment="Stretch" BorderBrush="Black" BorderThickness="1" Margin="10" Grid.Column="1">
-            <Grid>
-                <TextBlock Text="文本压缩预览" HorizontalAlignment="Center" VerticalAlignment="Center" />
+            <Grid AllowDrop="True" DragEnter="HufDragEnter" Drop="HufDragDrop">
+                <TextBlock Text="拖放待解压文件至此处(仅支持.huf Files)" HorizontalAlignment="Center" VerticalAlignment="Center" />
             </Grid>
         </Border>
         
@@ -36,7 +36,7 @@
         </StackPanel>
         
         <StackPanel Grid.Row="2" Grid.Column="1" Orientation="Horizontal" HorizontalAlignment="Center" VerticalAlignment="Center" Margin="10">
-            <Button Click="TextSave" Content="保存"  Margin="5"/>
+            <Button Click="TextDecompress" Content="解压"  Margin="5"/>
         </StackPanel>
     </Grid>
 </Page>
