@@ -14,8 +14,6 @@ public partial class Text : Page
     {
         InitializeComponent();
     }
-    
-    
 
     private void TextCompress(object sender, RoutedEventArgs e)
     {
@@ -54,7 +52,7 @@ public partial class Text : Page
             {
                 if (Path.GetExtension(file).Equals(".txt", StringComparison.OrdinalIgnoreCase))
                 {
-                    MessageBox.Show($"拖放的txt文件路径: {file}");
+                    // MessageBox.Show($"拖放的txt文件路径: {file}");
                 }
                 else
                 {
@@ -85,7 +83,7 @@ public partial class Text : Page
             {
                 if (Path.GetExtension(file).Equals(".huf", StringComparison.OrdinalIgnoreCase))
                 {
-                    MessageBox.Show($"拖放的huf文件路径: {file}");
+                    // MessageBox.Show($"拖放的huf文件路径: {file}");
                 }
                 else
                 {

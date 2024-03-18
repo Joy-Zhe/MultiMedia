@@ -63,6 +63,7 @@ public class HuffmanCompression
         using (BinaryWriter writer = new BinaryWriter(fs))
         {
             writer.Write((UInt64)encodingTable.Count); // write Dictionary size
+            writer.Write((byte)(8 - ((encodedText.Length - 1) % 8 + 1))); // additional bits
             writer.Write((UInt64)encodedText.Length); // write encoded text size
 
             foreach (var entry in encodingTable)
@@ -102,20 +103,35 @@ public class HuffmanCompression
         }
     }
     
-    private string DecodeBits(byte[] bitsIn, Dictionary<string, char> decodeTable)
+    private string DecodeBits(byte[] bitsIn, Dictionary<string, char> decodeTable, byte addtionalBits)
     {
         StringBuilder decodedText = new StringBuilder();
         StringBuilder bitString = new StringBuilder();
+
         foreach (var b in bitsIn)
         {
-            bitString.Append(Convert.ToString(b, 2).PadLeft(8, '0'));
-            while (bitString.Length >= 8)
+            string bit = Convert.ToString(b, 2).PadLeft(8, '0');
+            bitString.Append(bit);
+        }
+
+        bitString.Remove(bitString.Length - addtionalBits, addtionalBits);
+
+        while (bitString.Length > 0)
+        {
+            StringBuilder code = new StringBuilder();
+            while (bitString.Length > 0)
             {
-                var currentByte = bitString.ToString(0, 8);
-                bitString.Remove(0, 8);
-                decodedText.Append(decodeTable[currentByte]);
+                code.Append(bitString[0]); // read one bit
+                bitString.Remove(0, 1); // remove the bit read
+                if (decodeTable.ContainsKey(code.ToString()))
+                {
+                    decodedText.Append(decodeTable[code.ToString()]);
+                    code.Clear();
+                    break;
+                }
             }
         }
+        
         return decodedText.ToString();
     }
     
@@ -123,11 +139,13 @@ public class HuffmanCompression
     {
         byte[] compressedData;
         Dictionary<string, char> dictionary = new Dictionary<string, char>();
+        byte additionalBits;
 
         using (FileStream fs = new FileStream(inputFilePath, FileMode.Open))
         using (BinaryReader reader = new BinaryReader(fs))
         {
             var dictionarySize = (int)reader.ReadUInt64();
+            additionalBits = reader.ReadByte();
             var bitsLength = (int)reader.ReadUInt64();
             
             for (int i = 0; i < dictionarySize; i++)
@@ -139,8 +157,8 @@ public class HuffmanCompression
 
             compressedData = reader.ReadBytes(bitsLength);
         }
-        string decodedText = DecodeBits(compressedData, dictionary);
+        string decodedText = DecodeBits(compressedData, dictionary, additionalBits);
         
-        File.WriteAllText(decodedText, outputFilePath);
+        File.WriteAllText(outputFilePath, decodedText);
     }
 }
