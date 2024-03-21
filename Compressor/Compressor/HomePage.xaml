@@ -1,0 +1,31 @@
+﻿<Page
+    x:Class="Compressor.HomePage"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:local="using:Compressor"
+    xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+    xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+    mc:Ignorable="d"
+    Background="{ThemeResource ApplicationPageBackgroundThemeBrush}">
+    
+    <Grid Margin="20, 80, 20, 20">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="*"/>
+            <RowDefinition Height="*"/>
+            <RowDefinition Height="*"/>
+        </Grid.RowDefinitions>
+        
+        
+        <!-- 欢迎文本 -->
+        <TextBlock Margin="0, 0, 0, 20" Grid.Row="0" Text="Welcome to Compressor App!" HorizontalAlignment="Center" VerticalAlignment="Center" FontSize="24" FontWeight="Bold"/>
+
+        <!-- 欢迎说明 -->
+        <TextBlock Grid.Row="1" 
+                   Text="This app helps you compress your files quickly and efficiently. Get started by selecting a file or navigating through the options!" HorizontalAlignment="Center" VerticalAlignment="Center" TextWrapping="Wrap" 
+                   Margin="60, 0, 60, 0"
+                   MaxWidth="400"/>
+
+        <!-- 开始按钮 -->
+        <Button Grid.Row="2" Content="Get Started" HorizontalAlignment="Center"/>
+    </Grid>
+</Page>

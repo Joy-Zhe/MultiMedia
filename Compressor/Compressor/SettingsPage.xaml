@@ -1,0 +1,46 @@
+﻿<Page
+    x:Class="Compressor.SettingsPage"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:local="using:Compressor"
+    xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+    xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+    mc:Ignorable="d"
+    Background="{ThemeResource ApplicationPageBackgroundThemeBrush}">
+
+    <Grid Margin="20, 80, 20, 20">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="*"/>
+            <RowDefinition Height="*"/>
+            <RowDefinition Height="*"/>
+        </Grid.RowDefinitions>
+
+        <StackPanel Grid.Row="0"
+                    HorizontalAlignment="Left"
+                    VerticalAlignment="Top">
+            <TextBlock Text="Option 1" Style="{StaticResource SubheaderTextBlockStyle}" Margin="0,0,0,10"/>
+            <CheckBox Content="Enable Option 1" x:Name="Option1CheckBox" Margin="0,0,0,10"/>
+        </StackPanel>
+
+        <StackPanel Grid.Row="1"
+                    HorizontalAlignment="Left"
+                    VerticalAlignment="Top">
+            <TextBlock Text="Option 2" Style="{StaticResource SubheaderTextBlockStyle}" Margin="0,0,0,10"/>
+            <ComboBox x:Name="Option2ComboBox" Margin="0,0,0,10">
+                <ComboBoxItem Content="Option 2 Value 1"/>
+                <ComboBoxItem Content="Option 2 Value 2"/>
+                <ComboBoxItem Content="Option 2 Value 3"/>
+            </ComboBox>
+        </StackPanel>
+
+        <StackPanel Grid.Row="2"
+                    Orientation="Vertical"
+                    HorizontalAlignment="Left"
+                    VerticalAlignment="Top">
+            <TextBlock Text="Option 3" Style="{StaticResource SubheaderTextBlockStyle}" Margin="0,0,0,10"/>
+            <Slider x:Name="Option3Slider" Minimum="0" Maximum="100" Margin="0,0,0,20"/>
+
+            <Button Content="Save Settings" />
+        </StackPanel>
+    </Grid>
+</Page>
