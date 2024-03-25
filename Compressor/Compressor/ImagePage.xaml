@@ -12,6 +12,7 @@
         <Grid.RowDefinitions>
             <RowDefinition Height="3*"/>
             <RowDefinition Height="*"/>
+            <RowDefinition Height="*"/>
         </Grid.RowDefinitions>
         <Grid.ColumnDefinitions>
             <ColumnDefinition Width="*"/>
@@ -19,28 +20,68 @@
         </Grid.ColumnDefinitions>
         <Border Grid.Row="0" Grid.Column="0"
                 Margin="10"
-                BorderBrush="Firebrick"  BorderThickness="2"
-                AllowDrop="True" Drop="ImageDrop">
+                BorderBrush="Firebrick"  BorderThickness="2">
             <Image x:Name="previewImage" Stretch="Uniform" />
         </Border>
         <Border Grid.Row="0" Grid.Column="1"
                 Margin="10"
-                BorderBrush="Firebrick"  BorderThickness="2"
-                AllowDrop="True" Drop="ImageDrop">
+                BorderBrush="Firebrick"  BorderThickness="2">
             <Image x:Name="processedImage" Stretch="Uniform" />
         </Border>
 
         <StackPanel Grid.Row="1" Grid.Column="0"
-                    Orientation="Horizontal"
+                    Orientation="Vertical"
                     VerticalAlignment="Center"
                     HorizontalAlignment="Center">
-            <ComboBox x:Name="inputImage"
-                      MinWidth="150"
-                      Margin="10"/>
-            <Button x:Name="selectInputImage"
-                    Content="选择图像"
-                    Margin="10"
-                    Click="selectInputImage_Click"/>
+            <StackPanel Orientation="Horizontal"
+                        VerticalAlignment="Center"
+                        HorizontalAlignment="Center"
+                        >
+                <TextBox x:Name="inputImagePath" 
+                         MinWidth="150"
+                         IsReadOnly="True"
+                         Margin="10"/>
+                <Button x:Name="selectInputImage"
+                        Content="选择图像"
+                        Margin="10"
+                        Click="selectInputImage_Click"/>
+            </StackPanel>
         </StackPanel>
+
+
+        <StackPanel Grid.Row="2" Grid.Column="0"
+                    Orientation="Vertical"
+                    VerticalAlignment="Center"
+                    HorizontalAlignment="Center">
+            <StackPanel Orientation="Horizontal"
+                        VerticalAlignment="Center"
+                        HorizontalAlignment="Center"
+                        >
+                <TextBox x:Name="outputImagePath" 
+                         MinWidth="150"
+                         IsReadOnly="True"
+                         Margin="10"/>
+                <Button x:Name="selectOutputPath"
+                        Content="保存地址"
+                        Margin="10"
+                        Click="selectOutputPath_Click"
+                        />
+            </StackPanel>
+        </StackPanel>
+
+        <StackPanel Grid.Row="1"
+                    Grid.Column="1"
+                    Orientation="Horizontal"
+                    HorizontalAlignment="Center"
+                    VerticalAlignment="Center">
+            <Button x:Name="imgCompress" Content="压缩" Margin="20" Click="imgCompress_Click"/>
+            <Button x:Name="test" Content="TestBtn" Margin="20" Click="test_Click"/>
+        </StackPanel>
+        <Button Grid.Row="2"
+                Grid.Column="1"
+                VerticalAlignment="Center"
+                HorizontalAlignment="Center"
+                x:Name="imgDeCompress" 
+                Content="解压" Margin="20"/>
     </Grid>
 </Page>

@@ -1,0 +1,2 @@
+MainPackage=D:\code\Courses\MultiMedia\Compressor\Compressor\bin\ARM\Debug\Compressor_0.1.0.0_ARM_Debug.msix
+SymbolPackage=D:\code\Courses\MultiMedia\Compressor\Compressor\obj\ARM\Debug\Symbols\Compressor_0.1.0.0_ARM_Debug.appxsym

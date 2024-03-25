@@ -1,0 +1,22 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="Current" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <PropertyGroup>
+    <UapAppxPackageBuildMode>SideloadOnly</UapAppxPackageBuildMode>
+    <AppxShowAllApps>False</AppxShowAllApps>
+    <AppxBuildConfigurationSelection>x86|x64|arm</AppxBuildConfigurationSelection>
+    <PackageOptionalProjectsInIdeBuilds>False</PackageOptionalProjectsInIdeBuilds>
+    <Source>D:\code\Courses\MultiMedia\Compressor\Compressor\Assets\download.png</Source>
+    <SmallTileSource>D:\code\Courses\MultiMedia\Compressor\Compressor\Assets\download.png</SmallTileSource>
+    <MediumTileSource>D:\code\Courses\MultiMedia\Compressor\Compressor\Assets\download.png</MediumTileSource>
+    <WideTileSource>D:\code\Courses\MultiMedia\Compressor\Compressor\Assets\download.png</WideTileSource>
+    <LargeTileSource>D:\code\Courses\MultiMedia\Compressor\Compressor\Assets\download.png</LargeTileSource>
+    <AppIconSource>D:\code\Courses\MultiMedia\Compressor\Compressor\Assets\download.png</AppIconSource>
+    <SplashScreenSource>D:\code\Courses\MultiMedia\Compressor\Compressor\Assets\download.png</SplashScreenSource>
+    <PackageLogoSource>D:\code\Courses\MultiMedia\Compressor\Compressor\Assets\download.png</PackageLogoSource>
+    <BadgeLogoSource>D:\code\Courses\MultiMedia\Compressor\Compressor\Assets\download.png</BadgeLogoSource>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)' == 'Debug|ARM'">
+    <DeviceId>30f105c9-681e-420b-a277-7c086ead8a4e</DeviceId>
+    <UseEmulator>true</UseEmulator>
+  </PropertyGroup>
+</Project>

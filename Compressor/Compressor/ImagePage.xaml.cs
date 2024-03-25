@@ -16,6 +16,9 @@ using Windows.UI.Xaml.Input;
 using Windows.UI.Xaml.Media;
 using Windows.UI.Xaml.Media.Imaging;
 using Windows.UI.Xaml.Navigation;
+using Windows.Storage.Pickers;
+using Windows.UI.ViewManagement;
+using Compressor.Dependencies;
 
 // https://go.microsoft.com/fwlink/?LinkId=234238 上介绍了“空白页”项模板
 
@@ -26,39 +29,76 @@ namespace Compressor
     /// </summary>
     public sealed partial class ImagePage : Page
     {
+        string inputPath = null;
+        string outputPath = null;
+        StorageFile inputFile = null;
+        StorageFile outputFile = null;
+
         public ImagePage()
         {
             this.InitializeComponent();
         }
 
-        private async void ImageDrop(object sender, DragEventArgs e)
+        private async void selectInputImage_Click(object sender, RoutedEventArgs e)
         {
-            // 检查拖入的数据是否包含文件
-            if (e.DataView.Contains(StandardDataFormats.StorageItems))
+            FileOpenPicker filePicker = new FileOpenPicker();
+            filePicker.ViewMode = PickerViewMode.List;
+            filePicker.SuggestedStartLocation = PickerLocationId.DocumentsLibrary;
+            filePicker.FileTypeFilter.Add("*");
+
+            StorageFile file = await filePicker.PickSingleFileAsync();
+            if (file != null)
             {
-                // 获取拖入的文件
-                var items = await e.DataView.GetStorageItemsAsync();
-                if (items.Count > 0 && items[0] is StorageFile)
-                {
-                    // 获取拖入的第一个文件
-                    var file = items[0] as StorageFile;
-                    if (file.ContentType.StartsWith("image/"))
-                    {
-                        // 加载并显示图像文件
-                        BitmapImage bitmapImage = new BitmapImage();
-                        using (IRandomAccessStream fileStream = await file.OpenAsync(FileAccessMode.Read))
-                        {
-                            await bitmapImage.SetSourceAsync(fileStream);
-                        }
-                        previewImage.Source = bitmapImage;
-                    }
-                }
+                // 显示选择的文件路径
+                ToolTipService.SetToolTip(inputImagePath, file.Path);
+                inputImagePath.Text = file.Path;
+                inputPath = (file.Path);
+                inputFile = (file);
+            }
+            else
+            {
+                // 用户取消选择文件，或者未选择任何文件
+                ToolTipService.SetToolTip(inputImagePath, "No file selected");
+                inputImagePath.Text = "No file selected";
             }
         }
 
-        private void selectInputImage_Click(object sender, RoutedEventArgs e)
+        private void imgCompress_Click(object sender, RoutedEventArgs e)
         {
 
+        }
+
+        private async void test_Click(object sender, RoutedEventArgs e)
+        {
+            DataLoader ds = new DataLoader();
+            await ds.LoadImagePixels(inputFile);
+
+
+            await ds.SaveImagePixels(ds.GetPixels(), outputFile, ds.GetImgWidth(), ds.GetImgHeight());
+        }
+
+        private async void selectOutputPath_Click(object sender, RoutedEventArgs e)
+        {
+            FileSavePicker filePicker = new FileSavePicker();
+
+            filePicker.SuggestedStartLocation = PickerLocationId.PicturesLibrary;
+            filePicker.SuggestedFileName = "newImage";
+            filePicker.FileTypeChoices.Add("PNG Image", new List<string>() { ".png" });
+        
+            var file = await filePicker.PickSaveFileAsync();
+
+            if (file != null)
+            {
+                ToolTipService.SetToolTip(outputImagePath, file.Path);
+                outputImagePath.Text = file.Path;
+                outputPath = (file.Path);
+                outputFile = (file);
+            }
+            else
+            {
+                ToolTipService.SetToolTip(outputImagePath, "No file created");
+                outputImagePath.Text = "No file created";
+            }
         }
     }
 }

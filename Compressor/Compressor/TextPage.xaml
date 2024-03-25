@@ -63,7 +63,8 @@
                 HorizontalAlignment="Center"
                 VerticalAlignment="Center"
                 x:Name="TextDeCompress"
-                Content="解压">
+                Content="解压"
+                Click="TextDeCompress_Click">
         </Button>
 
         <TextBlock Grid.Row="1"

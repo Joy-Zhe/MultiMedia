@@ -16,7 +16,6 @@ using Windows.Storage.Pickers;
 using Windows.Storage;
 using Compressor.Algorithms;
 
-// https://go.microsoft.com/fwlink/?LinkId=234238 上介绍了“空白页”项模板
 
 namespace Compressor
 {
@@ -115,6 +114,13 @@ namespace Compressor
             {
                 outputFileName = "output.huf";
             }
+        }
+
+        private async void TextDeCompress_Click(object sender, RoutedEventArgs e)
+        {
+            HuffmanCompression huffmanCompression = new HuffmanCompression();
+
+            await huffmanCompression.DeCompress(inputFile, outputFolder, outputFileName);
         }
     }
 }

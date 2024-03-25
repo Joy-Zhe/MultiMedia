@@ -156,31 +156,42 @@ namespace Compressor.Algorithms
             return decodedText.ToString();
         }
 
-        public void DeCompress(string inputFilePath, string outputFilePath)
+        public async Task DeCompress(StorageFile inputFilePath, StorageFolder outputFilePath, String outputFileName)
         {
             byte[] compressedData;
             Dictionary<string, char> dictionary = new Dictionary<string, char>();
             byte additionalBits;
 
-            using (FileStream fs = new FileStream(inputFilePath, FileMode.Open))
-            using (BinaryReader reader = new BinaryReader(fs))
+            using (IRandomAccessStream stream = await inputFilePath.OpenReadAsync())
+            using (DataReader reader = new DataReader(stream))
             {
-                var dictionarySize = (int)reader.ReadUInt64();
-                additionalBits = reader.ReadByte();
-                var bitsLength = (int)reader.ReadUInt64();
+                reader.InputStreamOptions = InputStreamOptions.Partial;
+                await reader.LoadAsync((uint)stream.Size);
+                byte[] buffer = new byte[stream.Size];
+                reader.ReadBytes(buffer);
 
-                for (int i = 0; i < dictionarySize; i++)
+                using (MemoryStream memoryStream = new MemoryStream(buffer))
+                using (BinaryReader binaryReader = new BinaryReader(memoryStream))
                 {
-                    var key = reader.ReadChar(); // symbol
-                    var value = reader.ReadString(); // encoded 01 string
-                    dictionary.Add(value, key);
-                }
+                    var dictionarySize = (int)binaryReader.ReadUInt64();
+                    additionalBits = binaryReader.ReadByte();
+                    var bitsLength = (int)binaryReader.ReadUInt64();
 
-                compressedData = reader.ReadBytes(bitsLength);
+                    for (int i = 0; i < dictionarySize; i++)
+                    {
+                        var key = binaryReader.ReadChar(); // symbol
+                        var value = binaryReader.ReadString(); // encoded 01 string
+                        dictionary.Add(value, key);
+                    }
+
+                    compressedData = binaryReader.ReadBytes(bitsLength);
+                }
             }
+
             string decodedText = DecodeBits(compressedData, dictionary, additionalBits);
 
-            File.WriteAllText(outputFilePath, decodedText);
+            StorageFile outputFile = await outputFilePath.CreateFileAsync(outputFileName, CreationCollisionOption.ReplaceExisting);
+            await FileIO.WriteTextAsync(outputFile, decodedText);
         }
     }
 }
