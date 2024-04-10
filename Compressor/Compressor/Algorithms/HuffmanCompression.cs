@@ -21,49 +21,59 @@ namespace Compressor.Algorithms
 
     internal class HuffmanCompression
     {
-        private Dictionary<char, string> encodingTable = new Dictionary<char, string>();
+        public Dictionary<char, string> encodingTable = new Dictionary<char, string>();
+
+        public StringBuilder HuffmanComp(string text)
+        {
+            // character frequency
+            var frequencyTable = new Dictionary<char, int>();
+            foreach (var c in text)
+                if (frequencyTable.ContainsKey(c))
+                    frequencyTable[c]++;
+                else
+                    frequencyTable[c] = 1;
+
+            // Huffman Tree
+            var nodes = frequencyTable.Select(pair => new HuffmanNode
+            {
+                Symbol = pair.Key,
+                Frequency = pair.Value
+            }).ToList();
+
+            while (nodes.Count > 1)
+            {
+                nodes = nodes.OrderBy(node => node.Frequency).ToList();
+                var parent = new HuffmanNode
+                {
+                    Frequency = nodes[0].Frequency + nodes[1].Frequency,
+                    Left = nodes[0],
+                    Right = nodes[1]
+                };
+                nodes.RemoveRange(0, 2);
+                nodes.Add(parent);
+            }
+
+            // Encoding Table
+            encodingTable.Clear();
+            BuildEncodingTable(nodes[0], "");
+
+            // Compress
+            var encodedText = new StringBuilder();
+            foreach (var c in text) encodedText.Append(encodingTable[c]);
+
+            return encodedText;
+        }
 
         public async Task Compress(StorageFile inputFilePath, StorageFolder outputFilePath, String outputfileName)
         {
             try
             {
-                /*                var text = File.ReadAllText(inputFilePath);*/
                 string text = await FileIO.ReadTextAsync(inputFilePath);
-                // character frequency
-                var frequencyTable = new Dictionary<char, int>();
-                foreach (var c in text)
-                    if (frequencyTable.ContainsKey(c))
-                        frequencyTable[c]++;
-                    else
-                        frequencyTable[c] = 1;
 
-                // Huffman Tree
-                var nodes = frequencyTable.Select(pair => new HuffmanNode
-                {
-                    Symbol = pair.Key,
-                    Frequency = pair.Value
-                }).ToList();
+                // huffman compression
+                var encodedText = HuffmanComp(text);
 
-                while (nodes.Count > 1)
-                {
-                    nodes = nodes.OrderBy(node => node.Frequency).ToList();
-                    var parent = new HuffmanNode
-                    {
-                        Frequency = nodes[0].Frequency + nodes[1].Frequency,
-                        Left = nodes[0],
-                        Right = nodes[1]
-                    };
-                    nodes.RemoveRange(0, 2);
-                    nodes.Add(parent);
-                }
-
-                // Encoding Table
-                BuildEncodingTable(nodes[0], "");
-
-                // Compress
-                var encodedText = new StringBuilder();
-                foreach (var c in text) encodedText.Append(encodingTable[c]);
-
+                // save bin
                 StorageFile outputFile = await outputFilePath.CreateFileAsync(outputfileName, CreationCollisionOption.GenerateUniqueName);
 
                 // File.WriteAllText(outputFilePath, encodedText.ToString());

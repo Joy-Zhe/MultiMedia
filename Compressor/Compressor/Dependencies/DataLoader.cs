@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.IO;
 using System.Linq;
 using System.Runtime.InteropServices.WindowsRuntime;
@@ -31,7 +32,12 @@ namespace Compressor.Dependencies
             return imageData.GetHeight();
         }
 
-        private ImgData imageData { get; set; }
+        private ImgData imageData = new ImgData();
+
+        public ImgData GetImgData()
+        {
+            return imageData;
+        }
         
         public async Task<(BitmapPixelFormat, BitmapAlphaMode)> GetImageFormat(StorageFile imgFile)
         {
@@ -48,29 +54,27 @@ namespace Compressor.Dependencies
 
         public async Task LoadImagePixels(StorageFile inputfile)
         {
-            using (IRandomAccessStream stream = await inputfile.OpenAsync(FileAccessMode.Read))
+            try
             {
-                BitmapDecoder decoder = await BitmapDecoder.CreateAsync(stream);
-
-                PixelDataProvider pixelData = await decoder.GetPixelDataAsync();
-
-                byte[] pixels = pixelData.DetachPixelData();
-
-                uint width = decoder.PixelWidth;
-                uint height = decoder.PixelHeight;
-
-                for (int i = 0; i < pixels.Length; i += 4)
+                using (IRandomAccessStream stream = await inputfile.OpenAsync(FileAccessMode.Read))
                 {
-                    byte blue = pixels[i];
-                    byte green = pixels[i + 1];
-                    byte red = pixels[i + 2];
-                    byte alpha = pixels[i + 3];
+                    BitmapDecoder decoder = await BitmapDecoder.CreateAsync(stream);
+
+                    PixelDataProvider pixelData = await decoder.GetPixelDataAsync();
+
+                    byte[] pixels = pixelData.DetachPixelData();
+
+                    uint width = decoder.PixelWidth;
+                    uint height = decoder.PixelHeight;
+
+                    imageData.SetWH(width, height);
+                    imageData.SetPixels(pixels);
                 }
-
-                imageData.SetWH( width, height );
-                imageData.SetPixels( pixels );
             }
-
+            catch (Exception ex)
+            {
+                Debug.WriteLine($"Error loading image pixels: {ex.Message}");
+            }
         }
 
         public async Task SaveImagePixels(byte[] pixels, StorageFile imageFile, uint width, uint height)

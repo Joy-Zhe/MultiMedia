@@ -19,6 +19,7 @@ using Windows.UI.Xaml.Navigation;
 using Windows.Storage.Pickers;
 using Windows.UI.ViewManagement;
 using Compressor.Dependencies;
+using Compressor.Algorithms;
 
 // https://go.microsoft.com/fwlink/?LinkId=234238 上介绍了“空白页”项模板
 
@@ -33,6 +34,7 @@ namespace Compressor
         string outputPath = null;
         StorageFile inputFile = null;
         StorageFile outputFile = null;
+        ImageCompressor compressor = new ImageCompressor();
 
         public ImagePage()
         {
@@ -63,9 +65,9 @@ namespace Compressor
             }
         }
 
-        private void imgCompress_Click(object sender, RoutedEventArgs e)
+        private async void imgCompress_Click(object sender, RoutedEventArgs e)
         {
-
+            await compressor.Compress(inputFile, outputFile);
         }
 
         private async void test_Click(object sender, RoutedEventArgs e)
@@ -83,7 +85,7 @@ namespace Compressor
 
             filePicker.SuggestedStartLocation = PickerLocationId.PicturesLibrary;
             filePicker.SuggestedFileName = "newImage";
-            filePicker.FileTypeChoices.Add("PNG Image", new List<string>() { ".png" });
+            filePicker.FileTypeChoices.Add("Compressed binary File", new List<string>() { ".huf" });
         
             var file = await filePicker.PickSaveFileAsync();
 

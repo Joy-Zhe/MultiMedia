@@ -69,6 +69,8 @@ namespace Compressor.Dependencies
         public void SetPixels(byte[] pixels)
         {
             this.pixels = pixels;
+            BGRAData = new BGRA[pixels.Length / 4]; // 每个像素4个字节，因此长度是pixels的四分之一
+            YUVData = new YUV[pixels.Length / 4];
             for (int i = 0; i < pixels.Length; i += 4)
             {
                 byte blue = pixels[i];
@@ -76,8 +78,8 @@ namespace Compressor.Dependencies
                 byte red = pixels[i + 2];
                 byte alpha = pixels[i + 3];
 
-                BGRAData[i] = new BGRA(blue, green, red, alpha);
-                YUVData[i] = new YUV(RGB2YUV(BGRAData[i]));
+                BGRAData[i / 4] = new BGRA(blue, green, red, alpha);
+                YUVData[i / 4] = new YUV(RGB2YUV(BGRAData[i / 4]));
             }
         }
 
