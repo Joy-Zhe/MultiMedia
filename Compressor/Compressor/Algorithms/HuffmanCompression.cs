@@ -68,7 +68,23 @@ namespace Compressor.Algorithms
 
             // Compress
             var encodedText = new StringBuilder();
-            foreach (var c in text) encodedText.Append(encodingTable[c]);
+            // debug
+            int zeroCnt = 0;
+            // debug
+            foreach (var c in text)
+            {
+                // debug
+                if (c == 0)
+                {
+                    zeroCnt++;
+                }
+                // debug
+                encodedText.Append(encodingTable[c]);
+            };
+            
+            // debug
+            var encodedTextLength = encodedText.Length;
+            // debug
 
             return encodedText;
         }

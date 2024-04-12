@@ -55,6 +55,10 @@ namespace Compressor.Algorithms
                 string bit = Convert.ToString(b, 2).PadLeft(8, '0');
                 bitString.Append(bit);
             }
+            
+            // debug
+            int zeroCnt = 0;
+            // debug
 
             bitString.Remove(bitString.Length - additionalBitsLen, additionalBitsLen);
             while (bitString.Length > 0)
@@ -66,6 +70,13 @@ namespace Compressor.Algorithms
                     bitString.Remove(0, 1); // remove the bit read
                     if (table.ContainsKey(code.ToString()))
                     {
+                        // debug
+                        if (table[code.ToString()] == (char)0)
+                        {
+                            zeroCnt++;
+                        }
+                        // debug
+                        
                         result.Append(table[code.ToString()]);
                         code.Clear();
                         break;
@@ -79,19 +90,19 @@ namespace Compressor.Algorithms
         {
             List<int> dcList = new List<int>();
             
-            // DCPM
+            // Y/U/V
             char type = reader.ReadChar();
             // AC/DC
-            byte if_AC = reader.ReadByte(); // DC:0 AC:1
+            byte ifAc = reader.ReadByte(); // DC:0 AC:1
             // add bits len
             byte additionalBitsLen = reader.ReadByte();
             // bits len(2B)
-            ushort length = reader.ReadUInt16();
+            int length = reader.ReadInt32();
             byte[] compressedData = reader.ReadBytes(length);
             string data = DecodeBits(compressedData, dcHuffmanTable, additionalBitsLen);
             int now_dcpm = 0;
             dcList.Clear();
-            // 重新构建dc
+            // reconstruct dcpm table
             foreach (var dcpm in data)
             {
                 int delta = 0;
@@ -112,6 +123,7 @@ namespace Compressor.Algorithms
             List<int[]> result = new List<int[]>();
             List<int> block = new List<int>();
 
+            // Y/U/V
             char type = reader.ReadChar();
             // AC/DC
             byte ifAc = reader.ReadByte(); // DC:0 AC:1
@@ -120,24 +132,27 @@ namespace Compressor.Algorithms
                 // error
                 
             }
-            
-            ushort length = reader.ReadUInt16();
+            // add bits len
+            byte additionalBitsLen = reader.ReadByte();
+            // bits len(2B)
+            int length = reader.ReadInt32();
             byte[] compressedData = reader.ReadBytes(length);
-            string data = DecodeBits(compressedData, acHuffmanTable, 0);
+            string data = DecodeBits(compressedData, acHuffmanTable, additionalBitsLen);
             block.Clear();
+            // debug    
+            int tmp = 0;
+            // debug
             foreach (var c in data) // (zeroCnt, value)
             {
+                // debug
+                if (c == (char)0)
+                {
+                    tmp++;
+                }
+                // debug
+                
                 int zeroCnt = c >> 8;
                 int value = c & 0x7F;
-                if ((c & 0x0080) == 1)
-                {
-                    value = -value;
-                }
-                for (int i = 0; i < zeroCnt; i++)
-                {
-                    block.Add(0);
-                }
-                block.Add(0);
                 if (value == 0 && zeroCnt == 0) // EOB, end of a block
                 {
                     var itemCnt = block.Count;
@@ -149,14 +164,26 @@ namespace Compressor.Algorithms
                         }
                         result.Add(block.ToArray());
                         block.Clear();
+                        continue;
                     }
                     else
                     {
                         result.Add(block.ToArray());
                         block.Clear();
+                        continue;
                     }
                 }
+                if ((c & 0x0080) != 0)
+                {
+                    value = -value;
+                }
+                for (int i = 0; i < zeroCnt; i++)
+                {
+                    block.Add(0);
+                }
+                block.Add(value);
             }
+            var t = result.Count;
 
             return result;
         }
@@ -240,6 +267,7 @@ namespace Compressor.Algorithms
                                 // get zigzag string
                                 List<short> zigzag = new List<short>();
                                 zigzag.Add((short)dcListY[i]);
+                                var len = acListY[i].Length;
                                 for (int j = 1; j < 64; j++)
                                 {
                                     zigzag.Add((short)acListY[i][j - 1]);
@@ -333,7 +361,7 @@ namespace Compressor.Algorithms
                                 }
                             }
                             // set YUV
-                            
+                            decodedImage.SetYUV(yArray, uArray, vArray);
                         }
                     }
                 }
@@ -620,15 +648,16 @@ namespace Compressor.Algorithms
         
         private void WriteEncodedData(BinaryWriter writer)
         {
-            void WriteComponentData(char component, StringBuilder dcData, StringBuilder acData)
+            void WriteComponentData(char component, StringBuilder data, byte ifAc)
             {
-                WriteEncodedComponent(writer, component, 0, dcData); // DC
-                WriteEncodedComponent(writer, component, 1, acData); // AC
+                WriteEncodedComponent(writer, component, ifAc, data); 
             }
-        
-            WriteComponentData('Y', _encodedDcY, _encodedAcY);
-            WriteComponentData('U', _encodedDcU, _encodedAcU);
-            WriteComponentData('V', _encodedDcV, _encodedAcV);
+            WriteComponentData('Y', _encodedDcY, (byte)0x00);
+            WriteComponentData('U', _encodedDcU, (byte)0x00);
+            WriteComponentData('V', _encodedDcV, (byte)0x00);
+            WriteComponentData('Y', _encodedAcY, (byte)0x01);
+            WriteComponentData('U', _encodedAcU, (byte)0x01);
+            WriteComponentData('V', _encodedAcV, (byte)0x01);
         }
         
         private void WriteEncodedComponent(BinaryWriter writer, char componentType, byte type, StringBuilder encodedData)
@@ -637,7 +666,7 @@ namespace Compressor.Algorithms
             writer.Write(componentType); // Y/U/V
             writer.Write(type); // DC/AC
             writer.Write((byte)additionalBitsLen); // Additional bits
-            writer.Write((ushort)(encodedData.Length / 8 + (additionalBitsLen > 0 ? 1 : 0))); // Data byte length
+            writer.Write((int)(encodedData.Length / 8 + (additionalBitsLen > 0 ? 1 : 0))); // Data byte length
             WriteBitString(writer, encodedData.ToString()); // Data
         }
 
