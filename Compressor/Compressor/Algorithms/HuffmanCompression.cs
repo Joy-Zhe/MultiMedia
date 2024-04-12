@@ -23,6 +23,15 @@ namespace Compressor.Algorithms
     {
         public Dictionary<char, string> encodingTable = new Dictionary<char, string>();
 
+        public StringBuilder EncodingString(string text)
+        {
+            // Compress
+            var encodedText = new StringBuilder();
+            foreach (var c in text) encodedText.Append(encodingTable[c]);
+
+            return encodedText;
+        }
+
         public StringBuilder HuffmanComp(string text)
         {
             // character frequency

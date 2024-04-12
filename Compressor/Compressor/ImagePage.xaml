@@ -75,13 +75,13 @@
                     HorizontalAlignment="Center"
                     VerticalAlignment="Center">
             <Button x:Name="imgCompress" Content="压缩" Margin="20" Click="imgCompress_Click"/>
-            <Button x:Name="test" Content="TestBtn" Margin="20" Click="test_Click"/>
         </StackPanel>
         <Button Grid.Row="2"
                 Grid.Column="1"
                 VerticalAlignment="Center"
                 HorizontalAlignment="Center"
                 x:Name="imgDeCompress" 
-                Content="解压" Margin="20"/>
+                Content="解压" Margin="20"
+                Click="ImgDeCompress_OnClick"/>
     </Grid>
 </Page>

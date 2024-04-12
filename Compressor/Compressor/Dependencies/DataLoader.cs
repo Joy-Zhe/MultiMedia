@@ -77,8 +77,18 @@ namespace Compressor.Dependencies
             }
         }
 
-        public async Task SaveImagePixels(byte[] pixels, StorageFile imageFile, uint width, uint height)
+        public async Task SaveImagePixels(BGRA[] BGRA_pixel, StorageFile imageFile, uint width, uint height)
         {
+            byte[] pixels = new byte[BGRA_pixel.Length * 4];
+            for (int i = 0; i < BGRA_pixel.Length; i++)
+            {
+                int index = i * 4;
+                pixels[index] = BGRA_pixel[i].blue;
+                pixels[index + 1] = BGRA_pixel[i].green;
+                pixels[index + 2] = BGRA_pixel[i].red;
+                pixels[index + 3] = BGRA_pixel[i].alpha;
+            }
+
             WriteableBitmap bitmap = new WriteableBitmap((int)width, (int)height);
             using (Stream stream = bitmap.PixelBuffer.AsStream())
             {

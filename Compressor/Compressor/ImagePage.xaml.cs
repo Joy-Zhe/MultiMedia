@@ -70,15 +70,6 @@ namespace Compressor
             await compressor.Compress(inputFile, outputFile);
         }
 
-        private async void test_Click(object sender, RoutedEventArgs e)
-        {
-            DataLoader ds = new DataLoader();
-            await ds.LoadImagePixels(inputFile);
-
-
-            await ds.SaveImagePixels(ds.GetPixels(), outputFile, ds.GetImgWidth(), ds.GetImgHeight());
-        }
-
         private async void selectOutputPath_Click(object sender, RoutedEventArgs e)
         {
             FileSavePicker filePicker = new FileSavePicker();
@@ -86,7 +77,8 @@ namespace Compressor
             filePicker.SuggestedStartLocation = PickerLocationId.PicturesLibrary;
             filePicker.SuggestedFileName = "newImage";
             filePicker.FileTypeChoices.Add("Compressed binary File", new List<string>() { ".huf" });
-        
+            filePicker.FileTypeChoices.Add("BMP File", new List<string>() { ".bmp" });
+
             var file = await filePicker.PickSaveFileAsync();
 
             if (file != null)
@@ -101,6 +93,11 @@ namespace Compressor
                 ToolTipService.SetToolTip(outputImagePath, "No file created");
                 outputImagePath.Text = "No file created";
             }
+        }
+
+        private async void ImgDeCompress_OnClick(object sender, RoutedEventArgs e)
+        {
+            await compressor.DeCompress(inputFile, outputFile);
         }
     }
 }

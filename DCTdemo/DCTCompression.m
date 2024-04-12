@@ -1,11 +1,24 @@
 % 读取图像
-img = imread('test.bmp'); % 替换 'your_image.jpg' 为你的图像文件路径
+img = imread('R-C.bmp'); % 替换 'your_image.jpg' 为你的图像文件路径
 if size(img, 3) == 3
     % 转换颜色空间 RGB 到 YCbCr
     imgYCbCr = rgb2ycbcr(img);
     img = imgYCbCr(:, :, 1); % 只处理Y分量，简化示例
 end
 img = double(img); % 转换为double类型，进行DCT
+
+% 处理边界，使图像的尺寸能被8整除
+rows = size(img, 1);
+cols = size(img, 2);
+padRows = 8 - mod(rows, 8);
+if padRows == 8
+    padRows = 0;
+end
+padCols = 8 - mod(cols, 8);
+if padCols == 8
+    padCols = 0;
+end
+img = padarray(img, [padRows padCols], 'replicate', 'post');
 % 标准JPEG量化矩阵（亮度）
 Q = [16 11 10 16 24 40 51 61; 
      12 12 14 19 26 58 60 55;
@@ -25,6 +38,7 @@ for i = 1:8:rows
         dctBlocks(i:i+7, j:j+7) = dctBlock;
     end
 end
+disp(dctBlocks(1,1))
 % 绘图
 figure;
 imagesc(log(abs(dctBlocks) + 1)); % 使用log变换来增强可视化效果
@@ -40,6 +54,7 @@ for i = 1:8:rows
         quantizedDCTBlocks(i:i+7, j:j+7) = quantizedBlock;
     end
 end
+disp(quantizedDCTBlocks(1,1))
 % 绘图
 figure;
 imagesc(log(abs(quantizedDCTBlocks) + 1)); % 使用log变换来增强可视化效果

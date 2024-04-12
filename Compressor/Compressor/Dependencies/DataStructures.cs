@@ -83,6 +83,17 @@ namespace Compressor.Dependencies
             }
         }
 
+        public void SetYUV(YUV[] yuv)
+        {
+            this.YUVData = yuv;
+            this.BGRAData = new BGRA[yuv.Length];
+            for (int i = 0; i < yuv.Length; i++)
+            {
+                // Convert each YUV value back to BGRA and update BGRAData array
+                BGRAData[i] = YUV2RGB(yuv[i]);
+            }
+        }
+
         public void SetWH(uint width, uint height)
         {
             this.width = width;
@@ -98,9 +109,26 @@ namespace Compressor.Dependencies
             return new YUV(y, u, v);
         }
 
+        private BGRA YUV2RGB(YUV yuv)
+        {
+            int red = (int)(yuv.Y + 1.13983 * yuv.V);
+            int green = (int)(yuv.Y - 0.39465 * yuv.U - 0.58060 * yuv.V);
+            int blue = (int)(yuv.Y + 2.03211 * yuv.U);
+
+            // Clamp the values to the byte range 0 to 255
+            red = Math.Max(0, Math.Min(255, red));
+            green = Math.Max(0, Math.Min(255, green));
+            blue = Math.Max(0, Math.Min(255, blue));
+
+            return new BGRA((byte)blue, (byte)green, (byte)red, 255); // Assuming alpha channel is always fully opaque
+        }
+
         public void YUV2RGB()
         {
-
+            for (int i = 0; i < YUVData.Length; i++)
+            {
+                BGRAData[i] = YUV2RGB(YUVData[i]);
+            }
         }
     }
 
