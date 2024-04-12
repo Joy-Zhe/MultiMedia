@@ -2,6 +2,7 @@
 .vs/
 bin/
 obj/
+.vscode/
 AppPackages/
 cmake-build-debug/
 cmake-build-release/
