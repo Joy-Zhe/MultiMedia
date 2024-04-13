@@ -64,9 +64,9 @@ namespace Compressor.Dependencies
                 downsampledY = new double[width * height];
                 downsampledU = new double[width * height];
                 downsampledV = new double[width * height];
-                for (int y = 0; y < height; y += 2)
+                for (int y = 0; y < height; y++)
                 {
-                    for (int x = 0; x < width; x += 2)
+                    for (int x = 0; x < width; x++)
                     {
                         downsampledY[y * width + x] = this.YUVData[y * width + x].Y;
                         downsampledU[y * width + x] = this.YUVData[y * width + x].U;
@@ -90,9 +90,17 @@ namespace Compressor.Dependencies
                         {
                             for (int j = 0; j < 2; j++)
                             {
-                                sumU += this.YUVData[(y + i) * width + (x + j)].U;
-                                sumV += this.YUVData[(y + i) * width + (x + j)].V;
-                                downsampledY[(y + i) * width + (x + j)] = this.YUVData[(y + i) * width + (x + j)].Y; // Y will not be downsampled
+                                if (y + i >= this.height || x + j >= this.width)
+                                {
+                                    sumU += this.YUVData[(y) * width + (x)].U;
+                                    sumV += this.YUVData[(y) * width + (x)].V;
+                                }
+                                else
+                                {
+                                    sumU += this.YUVData[(y + i) * width + (x + j)].U;
+                                    sumV += this.YUVData[(y + i) * width + (x + j)].V;
+                                    downsampledY[(y + i) * width + (x + j)] = this.YUVData[(y + i) * width + (x + j)].Y; // Y will not be downsampled
+                                }
                             }
                         }
                         
@@ -180,17 +188,17 @@ namespace Compressor.Dependencies
         private YUV RGB2YUV(BGRA input)
         {
             double y = 0.299 * input.red + 0.587 * input.green + 0.114 * input.blue;
-            double u = -0.147 * input.red - 0.289 * input.green + 0.437 * input.blue;
-            double v = 0.615 * input.red - 0.515 * input.green - 0.100 * input.blue;
+            double u = -0.14713 * input.red - 0.28886 * input.green + 0.436 * input.blue;
+            double v = 0.615 * input.red - 0.51499 * input.green - 0.10001 * input.blue;
 
             return new YUV(y, u, v);
         }
 
         private BGRA YUV2RGB(YUV yuv)
         {
-            int red = (int)(yuv.Y + 1.13983 * yuv.V);
-            int green = (int)(yuv.Y - 0.39465 * yuv.U - 0.58060 * yuv.V);
-            int blue = (int)(yuv.Y + 2.03211 * yuv.U);
+            int red = (int)(yuv.Y + 1.13983 * (yuv.V));
+            int green = (int)(yuv.Y - 0.39465 * (yuv.U) - 0.58060 * (yuv.V));
+            int blue = (int)(yuv.Y + 2.03211 * (yuv.U));
 
             // Clamp the values to the byte range 0 to 255
             red = Math.Max(0, Math.Min(255, red));

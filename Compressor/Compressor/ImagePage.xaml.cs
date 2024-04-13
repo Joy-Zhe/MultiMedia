@@ -34,7 +34,7 @@ namespace Compressor
         string outputPath = null;
         StorageFile inputFile = null;
         StorageFile outputFile = null;
-        ImageCompressor compressor = new ImageCompressor();
+        //ImageCompressor compressor = new ImageCompressor();
 
         public ImagePage()
         {
@@ -67,6 +67,7 @@ namespace Compressor
 
         private async void imgCompress_Click(object sender, RoutedEventArgs e)
         {
+            ImageCompressor compressor = new ImageCompressor();
             await compressor.Compress(inputFile, outputFile);
         }
 
@@ -97,7 +98,14 @@ namespace Compressor
 
         private async void ImgDeCompress_OnClick(object sender, RoutedEventArgs e)
         {
+            ImageCompressor compressor = new ImageCompressor();
             await compressor.DeCompress(inputFile, outputFile);
+        }
+
+        private async void ButtonBase_OnClick(object sender, RoutedEventArgs e)
+        {
+            ImageCompressor compressor = new ImageCompressor();
+            await compressor.TestYUV(inputFile, outputFile);
         }
     }
 }

@@ -10,6 +10,7 @@ using Compressor.Dependencies;
 using Windows.Storage;
 using Windows.Storage.Streams;
 using Windows.UI.Xaml.Controls.Primitives;
+using Windows.UI.Xaml.Documents;
 
 namespace Compressor.Algorithms
 {
@@ -25,10 +26,10 @@ namespace Compressor.Algorithms
         StringBuilder _encodedAcY = new StringBuilder();
         StringBuilder _encodedAcU = new StringBuilder();
         StringBuilder _encodedAcV = new StringBuilder();
-        Dictionary<char, string> _dcTableL = new Dictionary<char, string>();
-        Dictionary<char, string> _dcTableC = new Dictionary<char, string>();
-        Dictionary<char, string> _acTableL = new Dictionary<char, string>();
-        Dictionary<char, string> _acTableC = new Dictionary<char, string>();
+        Dictionary<int, string> _dcTableL = new Dictionary<int, string>();
+        Dictionary<int, string> _dcTableC = new Dictionary<int, string>();
+        Dictionary<int, string> _acTableL = new Dictionary<int, string>();
+        Dictionary<int, string> _acTableC = new Dictionary<int, string>();
         public async Task Compress(StorageFile input, StorageFile output, byte type = 0x00)
         {
             await dataLoader.LoadImagePixels(input);
@@ -39,26 +40,30 @@ namespace Compressor.Algorithms
             await EncodingImage(output);
         }
 
+        public async Task TestYUV(StorageFile inputFile, StorageFile outputFile)
+        {
+            await dataLoader.LoadImagePixels(inputFile);
+            img = dataLoader.GetImgData();
+            img.YUV2RGB();
+            await dataLoader.SaveImagePixels(img.BGRAData, outputFile, img.GetWidth(), img.GetHeight());
+        }
+
         public async Task DeCompress(StorageFile input, StorageFile output)
         {
             ImgData decodedImage = await DecodingImage(input);
             await dataLoader.SaveImagePixels(decodedImage.BGRAData, output, decodedImage.GetWidth(), decodedImage.GetHeight());
         }
 
-        private string DecodeBits(byte[] bitStream, Dictionary<string, char> table, int additionalBitsLen)
+        private List<int> DecodeBits(byte[] bitStream, Dictionary<string, int> table, int additionalBitsLen)
         {
             StringBuilder bitString = new StringBuilder();
-            StringBuilder result = new StringBuilder();
+            List<int> result = new List<int>();
 
             foreach (var b in bitStream)
             {
                 string bit = Convert.ToString(b, 2).PadLeft(8, '0');
                 bitString.Append(bit);
             }
-            
-            // debug
-            int zeroCnt = 0;
-            // debug
 
             bitString.Remove(bitString.Length - additionalBitsLen, additionalBitsLen);
             while (bitString.Length > 0)
@@ -70,23 +75,16 @@ namespace Compressor.Algorithms
                     bitString.Remove(0, 1); // remove the bit read
                     if (table.ContainsKey(code.ToString()))
                     {
-                        // debug
-                        if (table[code.ToString()] == (char)0)
-                        {
-                            zeroCnt++;
-                        }
-                        // debug
-                        
-                        result.Append(table[code.ToString()]);
+                        result.Add(table[code.ToString()]);
                         code.Clear();
                         break;
                     }
                 }
             }
 
-            return result.ToString();
+            return result;
         }
-        private List<int> ReadDC(BinaryReader reader, Dictionary<string, char> dcHuffmanTable)
+        private List<int> ReadDC(BinaryReader reader, Dictionary<string, int> dcHuffmanTable)
         {
             List<int> dcList = new List<int>();
             
@@ -99,26 +97,20 @@ namespace Compressor.Algorithms
             // bits len(2B)
             int length = reader.ReadInt32();
             byte[] compressedData = reader.ReadBytes(length);
-            string data = DecodeBits(compressedData, dcHuffmanTable, additionalBitsLen);
-            int now_dcpm = 0;
+            List<int> data = DecodeBits(compressedData, dcHuffmanTable, additionalBitsLen);
+            int nowDcpm = 0;
             dcList.Clear();
             // reconstruct dcpm table
-            foreach (var dcpm in data)
+            foreach (var delta in data)
             {
-                int delta = 0;
-                delta |= dcpm & 0x7fff;
-                if ((dcpm & 0x8000) != 0)
-                {
-                    delta = -delta;
-                }
-                now_dcpm += delta;
-                dcList.Add(now_dcpm);
+                nowDcpm += delta;
+                dcList.Add(nowDcpm);
             }
 
             return dcList;
         }
 
-        private List<int[]> ReadAC(BinaryReader reader, Dictionary<string, char> acHuffmanTable)
+        private List<int[]> ReadAC(BinaryReader reader, Dictionary<string, int> acHuffmanTable)
         {
             List<int[]> result = new List<int[]>();
             List<int> block = new List<int>();
@@ -137,22 +129,12 @@ namespace Compressor.Algorithms
             // bits len(2B)
             int length = reader.ReadInt32();
             byte[] compressedData = reader.ReadBytes(length);
-            string data = DecodeBits(compressedData, acHuffmanTable, additionalBitsLen);
+            List<int> data = DecodeBits(compressedData, acHuffmanTable, additionalBitsLen);
             block.Clear();
-            // debug    
-            int tmp = 0;
-            // debug
             foreach (var c in data) // (zeroCnt, value)
             {
-                // debug
-                if (c == (char)0)
-                {
-                    tmp++;
-                }
-                // debug
-                
-                int zeroCnt = c >> 8;
-                int value = c & 0x7F;
+                int zeroCnt = c >> 16;
+                int value = (short)(c & 0xffff);
                 if (value == 0 && zeroCnt == 0) // EOB, end of a block
                 {
                     var itemCnt = block.Count;
@@ -173,18 +155,12 @@ namespace Compressor.Algorithms
                         continue;
                     }
                 }
-                if ((c & 0x0080) != 0)
-                {
-                    value = -value;
-                }
                 for (int i = 0; i < zeroCnt; i++)
                 {
                     block.Add(0);
                 }
                 block.Add(value);
             }
-            var t = result.Count;
-
             return result;
         }
         
@@ -205,15 +181,15 @@ namespace Compressor.Algorithms
                             decodedImage.SetWH(width, height); // set width and height
                             byte colorEncoding = reader.ReadByte(); // read color encoding
                             decodedImage.SetDownSampleType(colorEncoding); // set color encoding
-                            Dictionary<string, char> dcLTable = new Dictionary<string, char>();
-                            Dictionary<string, char> dcCTable = new Dictionary<string, char>();
-                            Dictionary<string, char> acLTable = new Dictionary<string, char>();
-                            Dictionary<string, char> acCTable = new Dictionary<string, char>();
+                            Dictionary<string, int> dcLTable = new Dictionary<string, int>();
+                            Dictionary<string, int> dcCTable = new Dictionary<string, int>();
+                            Dictionary<string, int> acLTable = new Dictionary<string, int>();
+                            Dictionary<string, int> acCTable = new Dictionary<string, int>();
                             // construct dc L table
                             int dcTableLSize = reader.ReadInt32(); // read dc L table size
                             for (int i = 0; i < dcTableLSize; i++)
                             {
-                                char key = reader.ReadChar();
+                                int key = reader.ReadInt32();
                                 string value = reader.ReadString();
                                 dcLTable[value] = key;
                             }
@@ -221,7 +197,7 @@ namespace Compressor.Algorithms
                             int dcTableCSize = reader.ReadInt32(); // read dc C table size
                             for (int i = 0; i < dcTableCSize; i++)
                             {
-                                char key = reader.ReadChar();
+                                int key = reader.ReadInt32();
                                 string value = reader.ReadString();
                                 dcCTable[value] = key;
                             }
@@ -229,7 +205,7 @@ namespace Compressor.Algorithms
                             int acTableLSize = reader.ReadInt32(); // read ac L table size
                             for (int i = 0; i < acTableLSize; i++)
                             {
-                                char key = reader.ReadChar();
+                                int key = reader.ReadInt32();
                                 string value = reader.ReadString();
                                 acLTable[value] = key;
                             }
@@ -237,7 +213,7 @@ namespace Compressor.Algorithms
                             int acTableCSize = reader.ReadInt32(); // read ac C table size
                             for (int i = 0; i < acTableCSize; i++)
                             {
-                                char key = reader.ReadChar();
+                                int key = reader.ReadInt32();
                                 string value = reader.ReadString();
                                 acCTable[value] = key;
                             }
@@ -265,15 +241,27 @@ namespace Compressor.Algorithms
                                 int blockY = (i / blockWidthNumber) * blockSize;
                                 int blockX = (i % blockWidthNumber) * blockSize;
                                 // get zigzag string
-                                List<short> zigzag = new List<short>();
-                                zigzag.Add((short)dcListY[i]);
+                                List<int> zigzag = new List<int>();
+                                zigzag.Add(dcListY[i]);
                                 var len = acListY[i].Length;
                                 for (int j = 1; j < 64; j++)
                                 {
-                                    zigzag.Add((short)acListY[i][j - 1]);
+                                    zigzag.Add(acListY[i][j - 1]);
                                 }
 
-                                var block = ApplyIDCT(DequantizeBlock(UnZigzagOrdering(zigzag)));
+
+                                var block = ApplyIDCT(DequantizeBlock(UnZigzagOrdering(zigzag), 'Y'));
+                                if (i == 0) // for debug
+                                {
+                                    Debug.WriteLine("Decomp Y");
+                                    PrintMatrix(block);
+                                }
+
+                                //if (i == 0)
+                                //{
+                                //    Debug.WriteLine("Decomp Y dequantize");
+                                //    PrintMatrix(DequantizeBlock(UnZigzagOrdering(zigzag)));
+                                //}
                                 for (int y = 0; y < blockSize; y++)
                                 {
                                     for (int x = 0; x < blockSize; x++)
@@ -288,78 +276,174 @@ namespace Compressor.Algorithms
                                     }
                                 }
                             }
-                            // U
-                            for (int i = 0; i < blockNumberUv; i++)
+                            // debug UV
+                            for (int i = 0; i < blockNumber; i++)
                             {
-                                int blockY = (i / (blockWidthNumber / 2)) * blockSize;
-                                int blockX = (i % (blockWidthNumber / 2)) * blockSize;
-                                // get zigzag string for U
-                                List<short> zigzagU = new List<short>();
-                                zigzagU.Add((short)dcListU[i]);
+                                int blockY = (i / blockWidthNumber) * blockSize;
+                                int blockX = (i % blockWidthNumber) * blockSize;
+                                // get zigzag string
+                                List<int> zigzag = new List<int>();
+                                zigzag.Add(dcListU[i]);
+                                var len = acListU[i].Length;
                                 for (int j = 1; j < 64; j++)
                                 {
-                                    zigzagU.Add((short)acListU[i][j - 1]);
+                                    zigzag.Add(acListU[i][j - 1]);
                                 }
 
-                                var blockU = ApplyIDCT(DequantizeBlock(UnZigzagOrdering(zigzagU)));
+
+                                var block = ApplyIDCT(DequantizeBlock(UnZigzagOrdering(zigzag), 'U'));
+                                if (i == 0) // for debug
+                                {
+                                    Debug.WriteLine("Decomp U");
+                                    PrintMatrix(block);
+                                }
+
                                 for (int y = 0; y < blockSize; y++)
                                 {
                                     for (int x = 0; x < blockSize; x++)
                                     {
-                                        int pixelX = blockX + x * 2; // Account for down-sampling
-                                        int pixelY = blockY + y * 2; // Account for down-sampling
-                                        for (int dy = 0; dy < 2; dy++)
+                                        int pixelX = blockX + x;
+                                        int pixelY = blockY + y;
+                                        int pixelIndex = pixelY * width + pixelX;
+                                        if (pixelX < width && pixelY < height)
                                         {
-                                            for (int dx = 0; dx < 2; dx++)
-                                            {
-                                                int subPixelX = pixelX + dx;
-                                                int subPixelY = pixelY + dy;
-                                                int pixelIndex = subPixelY * width + subPixelX;
-                                                if (subPixelX < width && subPixelY < height)
-                                                {
-                                                    uArray[pixelIndex] = blockU[y, x];
-                                                }
-                                            }
+                                            uArray[pixelIndex] = block[y, x];
                                         }
                                     }
                                 }
                             }
-                            // V
-                            for (int i = 0; i < blockNumberUv; i++)
+                            for (int i = 0; i < blockNumber; i++)
                             {
-                                int blockY = (i / (blockWidthNumber / 2)) * blockSize;
-                                int blockX = (i % (blockWidthNumber / 2)) * blockSize;
-                                // get zigzag string for V
-                                List<short> zigzagV = new List<short>();
-                                zigzagV.Add((short)dcListV[i]);
+                                int blockY = (i / blockWidthNumber) * blockSize;
+                                int blockX = (i % blockWidthNumber) * blockSize;
+                                // get zigzag string
+                                List<int> zigzag = new List<int>();
+                                zigzag.Add(dcListV[i]);
+                                var len = acListV[i].Length;
                                 for (int j = 1; j < 64; j++)
                                 {
-                                    zigzagV.Add((short)acListV[i][j - 1]);
+                                    zigzag.Add(acListV[i][j - 1]);
                                 }
 
-                                var blockV = ApplyIDCT(DequantizeBlock(UnZigzagOrdering(zigzagV)));
+
+                                var block = ApplyIDCT(DequantizeBlock(UnZigzagOrdering(zigzag), 'V'));
+                                if (i == 0) // for debug
+                                {
+                                    Debug.WriteLine("Decomp V");
+                                    PrintMatrix(block);
+                                }
+
+                                //if (i == 0)
+                                //{
+                                //    Debug.WriteLine("Decomp Y dequantize");
+                                //    PrintMatrix(DequantizeBlock(UnZigzagOrdering(zigzag)));
+                                //}
                                 for (int y = 0; y < blockSize; y++)
                                 {
                                     for (int x = 0; x < blockSize; x++)
                                     {
-                                        int pixelX = blockX + x * 2; // Account for down-sampling
-                                        int pixelY = blockY + y * 2; // Account for down-sampling
-                                        for (int dy = 0; dy < 2; dy++)
+                                        int pixelX = blockX + x;
+                                        int pixelY = blockY + y;
+                                        int pixelIndex = pixelY * width + pixelX;
+                                        if (pixelX < width && pixelY < height)
                                         {
-                                            for (int dx = 0; dx < 2; dx++)
-                                            {
-                                                int subPixelX = pixelX + dx;
-                                                int subPixelY = pixelY + dy;
-                                                int pixelIndex = subPixelY * width + subPixelX;
-                                                if (subPixelX < width && subPixelY < height)
-                                                {
-                                                    vArray[pixelIndex] = blockV[y, x];
-                                                }
-                                            }
+                                            vArray[pixelIndex] = block[y, x];
                                         }
                                     }
                                 }
                             }
+
+                            //// U
+                            //for (int i = 0; i < blockNumberUv; i++)
+                            //{
+                            //    int blockY = (i / (blockWidthNumber / 2)) * blockSize;
+                            //    int blockX = (i % (blockWidthNumber / 2)) * blockSize;
+                            //    // get zigzag string for U
+                            //    List<int> zigzagU = new List<int>();
+                            //    zigzagU.Add(dcListU[i]);
+                            //    for (int j = 1; j < 64; j++)
+                            //    {
+                            //        zigzagU.Add(acListU[i][j - 1]);
+                            //    }
+                            //    var blockU = ApplyIDCT(DequantizeBlock(UnZigzagOrdering(zigzagU), 'U'));
+                            //    if (i == 0) // for debug
+                            //    {
+                            //        Debug.WriteLine("Decomp U");
+                            //        PrintMatrix(blockU);
+                            //    }
+                            //    //if (i == 0)
+                            //    //{
+                            //    //    Debug.WriteLine("Decomp U dequantize");
+                            //    //    PrintMatrix(DequantizeBlock(UnZigzagOrdering(zigzagU)));
+                            //    //}
+                            //    for (int y = 0; y < blockSize; y++)
+                            //    {
+                            //        for (int x = 0; x < blockSize; x++)
+                            //        {
+                            //            int pixelX = blockX + x * 2; // Account for down-sampling
+                            //            int pixelY = blockY + y * 2; // Account for down-sampling
+                            //            for (int dy = 0; dy < 2; dy++)
+                            //            {
+                            //                for (int dx = 0; dx < 2; dx++)
+                            //                {
+                            //                    int subPixelX = pixelX + dx;
+                            //                    int subPixelY = pixelY + dy;
+                            //                    int pixelIndex = subPixelY * width + subPixelX;
+                            //                    if (subPixelX < width && subPixelY < height)
+                            //                    {
+                            //                        uArray[pixelIndex] = blockU[y, x];
+                            //                    }
+                            //                }
+                            //            }
+                            //        }
+                            //    }
+                            //}
+                            //// V
+                            //for (int i = 0; i < blockNumberUv; i++)
+                            //{
+                            //    int blockY = (i / (blockWidthNumber / 2)) * blockSize;
+                            //    int blockX = (i % (blockWidthNumber / 2)) * blockSize;
+                            //    // get zigzag string for V
+                            //    List<int> zigzagV = new List<int>();
+                            //    zigzagV.Add(dcListV[i]);
+                            //    for (int j = 1; j < 64; j++)
+                            //    {
+                            //        zigzagV.Add(acListV[i][j - 1]);
+                            //    }
+
+                            //    var blockV = ApplyIDCT(DequantizeBlock(UnZigzagOrdering(zigzagV), 'V'));
+                            //    if (i == 0) // for debug
+                            //    {
+                            //        Debug.WriteLine("Decomp V");
+                            //        PrintMatrix(blockV);
+                            //    }
+                            //    //if (i == 0)
+                            //    //{
+                            //    //    Debug.WriteLine("Decomp V dequantize");
+                            //    //    PrintMatrix(DequantizeBlock(UnZigzagOrdering(zigzagV)));
+                            //    //}
+                            //    for (int y = 0; y < blockSize; y++)
+                            //    {
+                            //        for (int x = 0; x < blockSize; x++)
+                            //        {
+                            //            int pixelX = blockX + x * 2; // Account for down-sampling
+                            //            int pixelY = blockY + y * 2; // Account for down-sampling
+                            //            for (int dy = 0; dy < 2; dy++)
+                            //            {
+                            //                for (int dx = 0; dx < 2; dx++)
+                            //                {
+                            //                    int subPixelX = pixelX + dx;
+                            //                    int subPixelY = pixelY + dy;
+                            //                    int pixelIndex = subPixelY * width + subPixelX;
+                            //                    if (subPixelX < width && subPixelY < height)
+                            //                    {
+                            //                        vArray[pixelIndex] = blockV[y, x];
+                            //                    }
+                            //                }
+                            //            }
+                            //        }
+                            //    }
+                            //}
                             // set YUV
                             decodedImage.SetYUV(yArray, uArray, vArray);
                         }
@@ -429,20 +513,19 @@ namespace Compressor.Algorithms
                 for (int v = 0; v < blockSize; v++)
                 {
                     double sum = 0.0;
+                    double cu = (u == 0) ? 1 / Math.Sqrt(2) : 1;
+                    double cv = (v == 0) ? 1 / Math.Sqrt(2) : 1;
                     for (int x = 0; x < blockSize; x++)
                     {
                         for (int y = 0; y < blockSize; y++)
                         {
-                            double pixelValue = 0;
-                            pixelValue = block[x * blockSize + y];
+                            double pixelValue = block[x * blockSize + y];
                             sum += pixelValue *
                                    Math.Cos((2 * x + 1) * u * Math.PI / 16) *
                                    Math.Cos((2 * y + 1) * v * Math.PI / 16);
                         }
                     }
-                    double cu = (u == 0) ? 1 / Math.Sqrt(8) : 2 / Math.Sqrt(8);
-                    double cv = (v == 0) ? 1 / Math.Sqrt(8) : 2 / Math.Sqrt(8);
-                    dctCoefficients[u, v] = cu * cv * sum;
+                    dctCoefficients[u, v] = 0.25 * cu * cv * sum; // 规范化每个系数
                 }
             }
 
@@ -451,7 +534,7 @@ namespace Compressor.Algorithms
 
         private double[,] ApplyIDCT(double[,] dctCoefficients)
         {
-            int blockSize = 8;
+            const int blockSize = 8;
             double[,] block = new double[blockSize, blockSize];
 
             for (int x = 0; x < blockSize; x++)
@@ -471,16 +554,15 @@ namespace Compressor.Algorithms
                                    Math.Cos((2 * y + 1) * v * Math.PI / 16);
                         }
                     }
-                    block[x, y] = sum * 0.25;
+                    block[x, y] = 0.25 * sum;
                 }
             }
 
             return block;
         }
 
-        private double[,] DequantizeBlock(double[,] quantizedCoefficients)
+        private double[,] DequantizeBlock(double[,] quantizedCoefficients, char type)
         {
-            // 使用与量化相同的量化矩阵
             int[,] quantizationMatrix = new int[,]
             {
                 { 16, 11, 10, 16, 24, 40, 51, 61 },
@@ -493,21 +575,78 @@ namespace Compressor.Algorithms
                 { 72, 92, 95, 98, 112, 100, 103, 99 }
             };
 
-            double[,] dequantizedCoefficients = new double[8, 8];
+            int[,] quantizationMatrixUv = new int[,]
+            {
+                { 17, 18, 24, 47, 99, 99, 99, 99 },
+                { 18, 21, 26, 66, 99, 99, 99, 99 },
+                { 24, 26, 56, 99, 99, 99, 99, 99 },
+                { 47, 66, 99, 99, 99, 99, 99, 99 },
+                { 99, 99, 99, 99, 99, 99, 99, 99 },
+                { 99, 99, 99, 99, 99, 99, 99, 99 },
+                { 99, 99, 99, 99, 99, 99, 99, 99 },
+                { 99, 99, 99, 99, 99, 99, 99, 99 }
+            };
+
+        double[,] dequantizedCoefficients = new double[8, 8];
 
             for (int i = 0; i < 8; i++)
             {
                 for (int j = 0; j < 8; j++)
                 {
-                    dequantizedCoefficients[i, j] = quantizedCoefficients[i, j] * quantizationMatrix[i, j];
+                    if (type == 'Y')
+                    {
+                        dequantizedCoefficients[i, j] = quantizedCoefficients[i, j] * quantizationMatrix[i, j];
+                    }
+                    else
+                    {
+                        dequantizedCoefficients[i, j] = quantizedCoefficients[i, j] * quantizationMatrixUv[i, j];
+                    }
                 }
             }
 
             return dequantizedCoefficients;
         }
 
+        // for debug
+        private void PrintMatrix(double[,] matrix)
+        {
+            int rows = matrix.GetLength(0);
+            int cols = matrix.GetLength(1);
+            StringBuilder output = new StringBuilder();
 
-        private double[,] QuantizeBlock(double[,] dctCoef)
+            for (int i = 0; i < rows; i++)
+            {
+                for (int j = 0; j < cols; j++)
+                {
+                    output.Append($"{matrix[i, j]:F2}\t");  // :F2 控制输出格式为两位小数
+                }
+                output.AppendLine();
+            }
+            Debug.WriteLine(output.ToString());
+        }
+
+        private void PrintArrayAsMatrix(double[] array, int rows, int cols)
+        {
+            if (array.Length != rows * cols)
+            {
+                throw new ArgumentException("Array length does not match the specified dimensions.");
+            }
+
+            StringBuilder output = new StringBuilder();
+            for (int i = 0; i < rows; i++)
+            {
+                for (int j = 0; j < cols; j++)
+                {
+                    output.Append($"{array[i * cols + j]:F2}\t");
+                }
+                output.AppendLine();
+            }
+            Debug.WriteLine(output.ToString());
+        }
+
+        // ---------------------------
+
+        private double[,] QuantizeBlock(double[,] dctCoef, char type)
         {
             // Standard JPEG Luminance Quantization Matrix for quality level around 50%
             int[,] quantizationMatrix = new int[,]
@@ -522,20 +661,39 @@ namespace Compressor.Algorithms
                 { 72, 92, 95, 98, 112, 100, 103, 99 }
             };
 
+            int[,] quantizationMatrixUv = new int[,]
+            {
+                { 17, 18, 24, 47, 99, 99, 99, 99 },
+                { 18, 21, 26, 66, 99, 99, 99, 99 },
+                { 24, 26, 56, 99, 99, 99, 99, 99 },
+                { 47, 66, 99, 99, 99, 99, 99, 99 },
+                { 99, 99, 99, 99, 99, 99, 99, 99 },
+                { 99, 99, 99, 99, 99, 99, 99, 99 },
+                { 99, 99, 99, 99, 99, 99, 99, 99 },
+                { 99, 99, 99, 99, 99, 99, 99, 99 }
+            };
+
             double[,] quantizedCoefficients = new double[8, 8];
 
             for (int i = 0; i < 8; i++)
             {
                 for (int j = 0; j < 8; j++)
                 {
-                    quantizedCoefficients[i, j] = Math.Round(dctCoef[i, j] / quantizationMatrix[i, j]);
+                    if (type == 'Y')
+                    {
+                        quantizedCoefficients[i, j] = Math.Round(dctCoef[i, j] / quantizationMatrix[i, j]);
+                    }
+                    else
+                    {
+                        quantizedCoefficients[i, j] = Math.Round(dctCoef[i, j] / quantizationMatrixUv[i, j]);
+                    }
                 }
             }
 
             return quantizedCoefficients;
         }
 
-        private List<short> ZigzagOrdering(double[,] block)
+        private List<int> ZigzagOrdering(double[,] block)
         {
             // char in .NET is 16-bit
             int[] order = new int[]
@@ -549,19 +707,19 @@ namespace Compressor.Algorithms
                 58, 59, 52, 45, 38, 31, 39, 46,
                 53, 60, 61, 54, 47, 55, 62, 63
             };
-            List<short> zigzag = new List<short>();
+            List<int> zigzag = new List<int>();
 
             foreach (var index in order)
             {
                 int i = index / 8;
                 int j = index % 8;
-                zigzag.Add((short)block[i, j]);
+                zigzag.Add((int)block[i, j]);
             }
 
             return zigzag;
         }
 
-        private double[,] UnZigzagOrdering(List<short> zigzag)
+        private double[,] UnZigzagOrdering(List<int> zigzag)
         {
             double[,] block = new double[8, 8];
             int[] order = new int[]
@@ -628,7 +786,7 @@ namespace Compressor.Algorithms
         
         private void WriteHuffmanTables(BinaryWriter writer)
         {
-            var tables = new Dictionary<string, Dictionary<char, string>> {
+            var tables = new Dictionary<string, Dictionary<int, string>> {
                 {"Luminance DC", _dcTableL},
                 {"Chrominance DC", _dcTableC},
                 {"Luminance AC", _acTableL},
@@ -682,39 +840,73 @@ namespace Compressor.Algorithms
             // Apply DCT and Quantization
             foreach (var block in yBlocks) // Y
             {
-                var quantizedBlock = QuantizeBlock(ApplyDct(block));
+                if (block == yBlocks.First()) // debug
+                {
+                    Debug.WriteLine("Origin Y");
+                    PrintArrayAsMatrix(block, 8, 8);
+                }
+                var quantizedBlock = QuantizeBlock(ApplyDct(block), 'Y');
+                //if (block == yBlocks.First()) // debug
+                //{
+                //    Debug.WriteLine("Comp Y");
+                //    PrintMatrix(quantizedBlock);
+                //    Debug.WriteLine("After DCT Y");
+                //    PrintMatrix(ApplyDct(block));
+                //}
                 yQuantizedBlocks.Add(quantizedBlock);
             }
             foreach (var block in uBlocks) // U
             {
-                var quantizedBlock = QuantizeBlock(ApplyDct(block));
+                if (block == uBlocks.First()) // debug
+                {
+                    Debug.WriteLine("Origin U");
+                    PrintArrayAsMatrix(block, 8, 8);
+                }
+                var quantizedBlock = QuantizeBlock(ApplyDct(block), 'U');
+                //if (block == uBlocks.First()) // debug
+                //{
+                //    Debug.WriteLine("Comp U");
+                //    PrintMatrix(quantizedBlock);
+                //    Debug.WriteLine("After DCT U");
+                //    PrintMatrix(ApplyDct(block));
+                //}
                 uQuantizedBlocks.Add(quantizedBlock);
             }
             foreach (var block in vBlocks) // V
             {
-                var quantizedBlock = QuantizeBlock(ApplyDct(block));
+                if (block == vBlocks.First()) // debug
+                {
+                    Debug.WriteLine("Origin V");
+                    PrintArrayAsMatrix(block, 8, 8);
+                }
+                var quantizedBlock = QuantizeBlock(ApplyDct(block), 'V');
+                //if (block == vBlocks.First()) // debug
+                //{
+                //    Debug.WriteLine("Origin V");
+                //    PrintMatrix(quantizedBlock);
+                //    Debug.WriteLine("After DCT V");
+                //    PrintMatrix(ApplyDct(block));
+                //}
                 vQuantizedBlocks.Add(quantizedBlock);
             }
             // luminance
             int yPrevDC = 0;
-            // StringBuilder yAcRle = new StringBuilder();
-            StringBuilder yDCPMs = new StringBuilder();
-            StringBuilder allAcRleLuminance = new StringBuilder();
+            List<int> yDCPMs = new List<int>();
+            List<int> allAcRleLuminance = new List<int>();
             // chrominance
             int uPrevDC = 0;
-            // StringBuilder uAcRle = new StringBuilder();
-            StringBuilder uDCPMs = new StringBuilder();
-            StringBuilder allAcRleU = new StringBuilder();
+            List<int> uDCPMs = new List<int>();
+            List<int> allAcRleU = new List<int>();
             int vPrevDC = 0;
             // StringBuilder vAcRle = new StringBuilder();
-            StringBuilder vDCPMs = new StringBuilder();
-            StringBuilder allAcRleV = new StringBuilder();
-            StringBuilder allAcRleChrominance = new StringBuilder();
+            List<int> vDCPMs = new List<int>();
+            List<int> allAcRleV = new List<int>();
+            List<int> allAcRleChrominance = new List<int>();
             
             // inline function to process block
-            void ProcessBlock(List<double[,]> quantizedBlocks, StringBuilder dcpmBuilder, ref int prevDC, StringBuilder allAcRle)
+            void ProcessBlock(List<double[,]> quantizedBlocks, List<int> dcpmBuilder, ref int prevDC, List<int> allAcRle)
             {
-                StringBuilder acRleBuilder = new StringBuilder();
+                List<int> acRleBuilder = new List<int>();
                 foreach (var block in quantizedBlocks)
                 {
                     acRleBuilder.Clear();
@@ -723,11 +915,7 @@ namespace Compressor.Algorithms
                     // DCPM
                     int dcpm = zigzag[0] - prevDC;
                     prevDC = zigzag[0];
-                    if (dcpm < 0) // mark minus
-                    {
-                        dcpm = Math.Abs(dcpm) | 0x8000;
-                    }
-                    dcpmBuilder.Append((char)(dcpm & 0xffff));
+                    dcpmBuilder.Add(dcpm);
 
                     // AC RLE
                     int zeroCount = 0;
@@ -739,17 +927,17 @@ namespace Compressor.Algorithms
                         }
                         else
                         {
-                            int combinedPair = (zeroCount << 8) | (Math.Abs(zigzag[i]) & 0xff);
-                            if (zigzag[i] < 0) // mark minus
-                            {
-                                combinedPair |= 0x80; // set the minus flag
-                            }
-                            acRleBuilder.Append((char)combinedPair);
+                            int combinedPair = (zeroCount << 16) | ((short)zigzag[i]) & 0xffff;
+                            //if (zigzag[i] < 0) // mark minus
+                            //{
+                            //    combinedPair |= 0x80; // set the minus flag
+                            //}
+                            acRleBuilder.Add(combinedPair);
                             zeroCount = 0; // reset zero count
                         }
                     }
-                    acRleBuilder.Append((char)0); // append end/EOB
-                    allAcRle.Append(acRleBuilder); // add to the whole AC RLE string, prepare for huffman coding
+                    acRleBuilder.Add(0); // append end/EOB
+                    allAcRle.AddRange(acRleBuilder); // add to the whole AC RLE string, prepare for huffman coding
                     
                 }
             }
@@ -761,29 +949,29 @@ namespace Compressor.Algorithms
             // huffman compress
             // luminance
             HuffmanCompression yDc = new HuffmanCompression();
-            _encodedDcY = yDc.HuffmanComp(yDCPMs.ToString());
-            _dcTableL = yDc.encodingTable;
+            _encodedDcY = yDc.HuffmanComp(yDCPMs);
+            _dcTableL = yDc.EncodingTable;
             HuffmanCompression yAc = new HuffmanCompression();
-            _encodedAcY = yAc.HuffmanComp(allAcRleLuminance.ToString());
-            _acTableL = yAc.encodingTable;
+            _encodedAcY = yAc.HuffmanComp(allAcRleLuminance);
+            _acTableL = yAc.EncodingTable;
             // chrominance
             HuffmanCompression cDc = new HuffmanCompression();
-            StringBuilder allDCPMsChrominace = new StringBuilder();
+            List<int> allDCPMsChrominace = new List<int>();
             // join u and v DCPMs
-            allDCPMsChrominace.Append(uDCPMs);
-            allDCPMsChrominace.Append(vDCPMs);
-            var tmpDc = cDc.HuffmanComp(allDCPMsChrominace.ToString());
-            _encodedDcU = cDc.EncodingString(uDCPMs.ToString());
-            _encodedDcV = cDc.EncodingString(vDCPMs.ToString());
-            _dcTableC = cDc.encodingTable;
+            allDCPMsChrominace.AddRange(uDCPMs);
+            allDCPMsChrominace.AddRange(vDCPMs);
+            var tmpDc = cDc.HuffmanComp(allDCPMsChrominace);
+            _encodedDcU = cDc.EncodingString(uDCPMs);
+            _encodedDcV = cDc.EncodingString(vDCPMs);
+            _dcTableC = cDc.EncodingTable;
             HuffmanCompression cAc = new HuffmanCompression();
             // join u and v AC RLE
-            allAcRleChrominance.Append(allAcRleU);
-            allAcRleChrominance.Append(allAcRleV);
-            var tmpAc = cAc.HuffmanComp(allAcRleChrominance.ToString());
-            _encodedAcU = cAc.EncodingString(allAcRleU.ToString());
-            _encodedAcV = cAc.EncodingString(allAcRleV.ToString());
-            _acTableC = cAc.encodingTable;
+            allAcRleChrominance.AddRange(allAcRleU);
+            allAcRleChrominance.AddRange(allAcRleV);
+            var tmpAc = cAc.HuffmanComp(allAcRleChrominance);
+            _encodedAcU = cAc.EncodingString(allAcRleU);
+            _encodedAcV = cAc.EncodingString(allAcRleV);
+            _acTableC = cAc.EncodingTable;
         }
     }
 }

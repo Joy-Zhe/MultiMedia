@@ -13,7 +13,7 @@ namespace Compressor.Algorithms
 {
     public class HuffmanNode
     {
-        public char Symbol { get; set; }
+        public int Symbol { get; set; }
         public int Frequency { get; set; }
         public HuffmanNode Left { get; set; }
         public HuffmanNode Right { get; set; }
@@ -21,26 +21,28 @@ namespace Compressor.Algorithms
 
     internal class HuffmanCompression
     {
-        public Dictionary<char, string> encodingTable = new Dictionary<char, string>();
+        public Dictionary<int, string> EncodingTable = new Dictionary<int, string>();
 
-        public StringBuilder EncodingString(string text)
+        public StringBuilder EncodingString(IEnumerable<int> text)
         {
             // Compress
             var encodedText = new StringBuilder();
-            foreach (var c in text) encodedText.Append(encodingTable[c]);
+            foreach (var c in text) encodedText.Append(EncodingTable[c]);
 
             return encodedText;
         }
 
-        public StringBuilder HuffmanComp(string text)
+        public StringBuilder HuffmanComp(IEnumerable<int> text)
         {
             // character frequency
-            var frequencyTable = new Dictionary<char, int>();
+            var frequencyTable = new Dictionary<int, int>();
             foreach (var c in text)
+            {
                 if (frequencyTable.ContainsKey(c))
                     frequencyTable[c]++;
                 else
                     frequencyTable[c] = 1;
+            }
 
             // Huffman Tree
             var nodes = frequencyTable.Select(pair => new HuffmanNode
@@ -63,28 +65,16 @@ namespace Compressor.Algorithms
             }
 
             // Encoding Table
-            encodingTable.Clear();
+            EncodingTable.Clear();
             BuildEncodingTable(nodes[0], "");
 
             // Compress
             var encodedText = new StringBuilder();
-            // debug
-            int zeroCnt = 0;
-            // debug
+
             foreach (var c in text)
             {
-                // debug
-                if (c == 0)
-                {
-                    zeroCnt++;
-                }
-                // debug
-                encodedText.Append(encodingTable[c]);
+                encodedText.Append(EncodingTable[c]);
             };
-            
-            // debug
-            var encodedTextLength = encodedText.Length;
-            // debug
 
             return encodedText;
         }
@@ -95,8 +85,15 @@ namespace Compressor.Algorithms
             {
                 string text = await FileIO.ReadTextAsync(inputFilePath);
 
+                List<int> textInt = new List<int>();
+
+                foreach (var c in text)
+                {
+                    textInt.Add((int)c);
+                }
+
                 // huffman compression
-                var encodedText = HuffmanComp(text);
+                var encodedText = HuffmanComp(textInt);
 
                 // save bin
                 StorageFile outputFile = await outputFilePath.CreateFileAsync(outputfileName, CreationCollisionOption.GenerateUniqueName);
@@ -108,11 +105,11 @@ namespace Compressor.Algorithms
                     {
                         using (BinaryWriter writer = new BinaryWriter(outputStream))
                         {
-                            writer.Write((UInt64)encodingTable.Count); // 写入字典大小
+                            writer.Write((UInt64)EncodingTable.Count); // 写入字典大小
                             writer.Write((byte)(8 - ((encodedText.Length - 1) % 8 + 1))); // 写入额外的位数
                             writer.Write((UInt64)encodedText.Length); // 写入编码后文本的大小
 
-                            foreach (var entry in encodingTable)
+                            foreach (var entry in EncodingTable)
                             {
                                 writer.Write(entry.Key); // 写入字符
                                 writer.Write(entry.Value); // 写入编码
@@ -150,7 +147,7 @@ namespace Compressor.Algorithms
         {
             if (node.Left == null && node.Right == null)
             {
-                encodingTable[node.Symbol] = code;
+                EncodingTable[node.Symbol] = code;
             }
             else
             {
@@ -214,7 +211,7 @@ namespace Compressor.Algorithms
 
                     for (int i = 0; i < dictionarySize; i++)
                     {
-                        var key = binaryReader.ReadChar(); // symbol
+                        var key = (char)(binaryReader.ReadInt32()); // symbol
                         var value = binaryReader.ReadString(); // encoded 01 string
                         dictionary.Add(value, key);
                     }
