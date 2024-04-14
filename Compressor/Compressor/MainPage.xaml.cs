@@ -45,6 +45,9 @@ namespace Compressor
                     case "image":
                         MainFrame.Navigate(typeof (ImagePage));
                         break;
+                    case "imageDeComp":
+                        MainFrame.Navigate(typeof (ImageDeCompress)); 
+                        break;
                     case "text":
                         MainFrame.Navigate(typeof (TextPage));
                         break;

@@ -34,6 +34,7 @@ namespace Compressor
         string outputPath = null;
         StorageFile inputFile = null;
         StorageFile outputFile = null;
+
         //ImageCompressor compressor = new ImageCompressor();
 
         public ImagePage()
@@ -51,15 +52,24 @@ namespace Compressor
             StorageFile file = await filePicker.PickSingleFileAsync();
             if (file != null)
             {
-                // 显示选择的文件路径
+                // file path
                 ToolTipService.SetToolTip(inputImagePath, file.Path);
                 inputImagePath.Text = file.Path;
                 inputPath = (file.Path);
                 inputFile = (file);
+
+                // preview
+                using (Windows.Storage.Streams.IRandomAccessStream fileStream = await file.OpenAsync(Windows.Storage.FileAccessMode.Read))
+                {
+                    // Set the image source to the selected bitmap
+                    BitmapImage bitmapImage = new BitmapImage();
+                    await bitmapImage.SetSourceAsync(fileStream);
+                    previewImage.Source = bitmapImage;
+                }
             }
             else
             {
-                // 用户取消选择文件，或者未选择任何文件
+                // no file selected
                 ToolTipService.SetToolTip(inputImagePath, "No file selected");
                 inputImagePath.Text = "No file selected";
             }
@@ -68,7 +78,7 @@ namespace Compressor
         private async void imgCompress_Click(object sender, RoutedEventArgs e)
         {
             ImageCompressor compressor = new ImageCompressor();
-            await compressor.Compress(inputFile, outputFile);
+            await compressor.Compress(inputFile, outputFile, 0x00);
         }
 
         private async void selectOutputPath_Click(object sender, RoutedEventArgs e)
@@ -77,8 +87,7 @@ namespace Compressor
 
             filePicker.SuggestedStartLocation = PickerLocationId.PicturesLibrary;
             filePicker.SuggestedFileName = "newImage";
-            filePicker.FileTypeChoices.Add("Compressed binary File", new List<string>() { ".huf" });
-            filePicker.FileTypeChoices.Add("BMP File", new List<string>() { ".bmp" });
+            filePicker.FileTypeChoices.Add("Compressed Image File", new List<string>() { ".hufimg" });
 
             var file = await filePicker.PickSaveFileAsync();
 
@@ -107,5 +116,12 @@ namespace Compressor
             ImageCompressor compressor = new ImageCompressor();
             await compressor.TestYUV(inputFile, outputFile);
         }
+
+        private async void ImgCompress420_OnClick(object sender, RoutedEventArgs e)
+        {
+            ImageCompressor compressor = new ImageCompressor();
+            await compressor.Compress(inputFile, outputFile, 0x01);
+        }
+
     }
 }

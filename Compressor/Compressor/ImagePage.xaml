@@ -10,8 +10,6 @@
 
     <Grid Margin="20, 80, 20, 20">
         <Grid.RowDefinitions>
-            <RowDefinition Height="3*"/>
-            <RowDefinition Height="*"/>
             <RowDefinition Height="*"/>
         </Grid.RowDefinitions>
         <Grid.ColumnDefinitions>
@@ -23,13 +21,8 @@
                 BorderBrush="Firebrick"  BorderThickness="2">
             <Image x:Name="previewImage" Stretch="Uniform" />
         </Border>
-        <Border Grid.Row="0" Grid.Column="1"
-                Margin="10"
-                BorderBrush="Firebrick"  BorderThickness="2">
-            <Image x:Name="processedImage" Stretch="Uniform" />
-        </Border>
 
-        <StackPanel Grid.Row="1" Grid.Column="0"
+        <StackPanel Grid.Row="0" Grid.Column="1"
                     Orientation="Vertical"
                     VerticalAlignment="Center"
                     HorizontalAlignment="Center">
@@ -39,6 +32,7 @@
                         >
                 <TextBox x:Name="inputImagePath" 
                          MinWidth="150"
+                         MaxWidth="300"
                          IsReadOnly="True"
                          Margin="10"/>
                 <Button x:Name="selectInputImage"
@@ -46,43 +40,33 @@
                         Margin="10"
                         Click="selectInputImage_Click"/>
             </StackPanel>
-        </StackPanel>
-
-
-        <StackPanel Grid.Row="2" Grid.Column="0"
-                    Orientation="Vertical"
-                    VerticalAlignment="Center"
-                    HorizontalAlignment="Center">
             <StackPanel Orientation="Horizontal"
                         VerticalAlignment="Center"
                         HorizontalAlignment="Center"
-                        >
+            >
                 <TextBox x:Name="outputImagePath" 
                          MinWidth="150"
+                         MaxWidth="300"
                          IsReadOnly="True"
                          Margin="10"/>
                 <Button x:Name="selectOutputPath"
                         Content="保存地址"
                         Margin="10"
                         Click="selectOutputPath_Click"
-                        />
+                />
             </StackPanel>
+            <Button HorizontalAlignment="Center"
+                    VerticalAlignment="Center"
+                    x:Name="ImageCompress"
+                    Margin="60"
+                    Content="压缩">
+                <Button.Flyout>
+                    <MenuFlyout>
+                        <MenuFlyoutItem x:Name="imgCompress" Text="YUV444" Icon="Copy"  Click="imgCompress_Click"/>
+                        <MenuFlyoutItem x:Name="imgCompress420" Text="YUV420" Icon="Copy" Click="ImgCompress420_OnClick"/>
+                    </MenuFlyout>
+                </Button.Flyout>
+            </Button>
         </StackPanel>
-
-        <StackPanel Grid.Row="1"
-                    Grid.Column="1"
-                    Orientation="Horizontal"
-                    HorizontalAlignment="Center"
-                    VerticalAlignment="Center">
-            <Button x:Name="imgCompress" Content="压缩" Margin="20" Click="imgCompress_Click"/>
-            <Button Content="RGB2YUV2RGB" Margin="20" Click="ButtonBase_OnClick"></Button>
-        </StackPanel>
-        <Button Grid.Row="2"
-                Grid.Column="1"
-                VerticalAlignment="Center"
-                HorizontalAlignment="Center"
-                x:Name="imgDeCompress" 
-                Content="解压" Margin="20"
-                Click="ImgDeCompress_OnClick"/>
     </Grid>
 </Page>

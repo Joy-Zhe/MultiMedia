@@ -13,11 +13,9 @@
         
         <NavigationView x:Name="NavView" PaneDisplayMode="Top">
             <NavigationView.MenuItems>
-                <NavigationViewItem Icon="Home" 
-                                    Content="Home" 
-                                    Tag="home"
-                                    />
-                <NavigationViewItem Icon="Camera" Content="图像" Tag="image" />
+                <NavigationViewItem Icon="Home" Content="Home" Tag="home"/>
+                <NavigationViewItem Icon="Camera" Content="压缩" Tag="image" />
+                <NavigationViewItem Icon="Camera"  Content="解压" Tag="imageDeComp" />
                 <NavigationViewItem Icon="Document" Content="文本" Tag="text" />
             </NavigationView.MenuItems>
         </NavigationView>
