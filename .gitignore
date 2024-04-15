@@ -8,3 +8,11 @@ cmake-build-debug/
 cmake-build-release/
 cmake-build-debug-qt_mingw/
 cmake-build-release-qt_mingw/
+*.gz
+*.zip
+*.tar.gz
+*.log
+*.aux
+*.pdf
+*.doc
+*.docx

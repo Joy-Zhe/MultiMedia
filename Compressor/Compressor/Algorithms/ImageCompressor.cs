@@ -9,6 +9,7 @@ using System.Threading.Tasks;
 using Compressor.Dependencies;
 using Windows.Storage;
 using Windows.Storage.Streams;
+using Windows.UI.Popups;
 using Windows.UI.Xaml.Controls.Primitives;
 using Windows.UI.Xaml.Documents;
 
@@ -56,17 +57,8 @@ namespace Compressor.Algorithms
             img.DownSampling(); // down sampling
             DoCompress();
             await EncodingImage(output);
-        }
-
-        public async Task TestYUV(StorageFile inputFile, StorageFile outputFile)
-        {
-            DataLoader dataLoader = new DataLoader();
-            await dataLoader.LoadImagePixels(inputFile);
-            img = dataLoader.GetImgData();
-            img.SetDownSampleType(0x01); // set down sample type
-            img.DownSampling();
-            img.UpSampling();
-            await dataLoader.SaveImagePixels(img.BGRAData, outputFile, img.GetWidth(), img.GetHeight());
+            MessageDialog finish = new MessageDialog("压缩已完成");
+            await finish.ShowAsync();
         }
 
         public async Task DeCompress(StorageFile input, StorageFile output)
@@ -74,6 +66,8 @@ namespace Compressor.Algorithms
             DataLoader dataLoader = new DataLoader();
             ImgData decodedImage = await DecodingImage(input);
             await dataLoader.SaveImagePixels(decodedImage.BGRAData, output, decodedImage.GetWidth(), decodedImage.GetHeight());
+            MessageDialog finish = new MessageDialog("解压已完成");
+            await finish.ShowAsync();
         }
 
         private List<int> DecodeBits(byte[] bitStream, Dictionary<string, int> table, int additionalBitsLen)

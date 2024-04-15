@@ -60,7 +60,7 @@
                     VerticalAlignment="Center"
                     HorizontalAlignment="Center"
                     x:Name="imgDeCompress" 
-                    Content="解压" Margin="20"
+                    Content="解压" Margin="60"
                     Click="ImgDeCompress_OnClick"/>
         </StackPanel>
 

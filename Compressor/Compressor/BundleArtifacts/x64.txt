@@ -1,2 +1,6 @@
-MainPackage=D:\code\Courses\MultiMedia\Compressor\Compressor\bin\x64\Debug\Compressor_0.1.0.0_x64_Debug.msix
-SymbolPackage=D:\code\Courses\MultiMedia\Compressor\Compressor\obj\x64\Debug\Symbols\Compressor_0.1.0.0_x64_Debug.appxsym
+MainPackage=D:\code\Courses\MultiMedia\Compressor\Compressor\bin\x64\Debug\Compressor_0.1.2.0_x64_Debug.msix
+SymbolPackage=D:\code\Courses\MultiMedia\Compressor\Compressor\obj\x64\Debug\Symbols\Compressor_0.1.2.0_x64_Debug.appxsym
+ResourcePack=D:\code\Courses\MultiMedia\Compressor\Compressor\bin\x64\Debug\Compressor_0.1.2.0_scale-100.msix
+ResourcePack=D:\code\Courses\MultiMedia\Compressor\Compressor\bin\x64\Debug\Compressor_0.1.2.0_scale-125.msix
+ResourcePack=D:\code\Courses\MultiMedia\Compressor\Compressor\bin\x64\Debug\Compressor_0.1.2.0_scale-150.msix
+ResourcePack=D:\code\Courses\MultiMedia\Compressor\Compressor\bin\x64\Debug\Compressor_0.1.2.0_scale-400.msix
