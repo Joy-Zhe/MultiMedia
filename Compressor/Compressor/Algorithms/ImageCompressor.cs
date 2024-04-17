@@ -30,6 +30,37 @@ namespace Compressor.Algorithms
         Dictionary<int, string> _dcTableC = new Dictionary<int, string>();
         Dictionary<int, string> _acTableL = new Dictionary<int, string>();
         Dictionary<int, string> _acTableC = new Dictionary<int, string>();
+        private double _quality = 1.0;
+
+        int[,] quantizationMatrix = new int[,]
+        {
+            { 16, 11, 10, 16, 24, 40, 51, 61 },
+            { 12, 12, 14, 19, 26, 58, 60, 55 },
+            { 14, 13, 16, 24, 40, 57, 69, 56 },
+            { 14, 17, 22, 29, 51, 87, 80, 62 },
+            { 18, 22, 37, 56, 68, 109, 103, 77 },
+            { 24, 35, 55, 64, 81, 104, 113, 92 },
+            { 49, 64, 78, 87, 103, 121, 120, 101 },
+            { 72, 92, 95, 98, 112, 100, 103, 99 }
+        };
+
+        int[,] quantizationMatrixUv = new int[,]
+        {
+            { 17, 18, 24, 47, 99, 99, 99, 99 },
+            { 18, 21, 26, 66, 99, 99, 99, 99 },
+            { 24, 26, 56, 99, 99, 99, 99, 99 },
+            { 47, 66, 99, 99, 99, 99, 99, 99 },
+            { 99, 99, 99, 99, 99, 99, 99, 99 },
+            { 99, 99, 99, 99, 99, 99, 99, 99 },
+            { 99, 99, 99, 99, 99, 99, 99, 99 },
+            { 99, 99, 99, 99, 99, 99, 99, 99 }
+        };
+
+        public void SetQuality(double quality = 1.0)
+        {
+            this._quality = quality;
+            Debug.WriteLine(_quality);
+        }
 
         // for debug
         public static async Task WriteDataToFileAsync(double[] dataArray, int width, int height, StorageFile outputFile)
@@ -55,7 +86,7 @@ namespace Compressor.Algorithms
             img = dataLoader.GetImgData();
             img.SetDownSampleType(type); // set down sample type
             img.DownSampling(); // down sampling
-            DoCompress();
+            DoCompress(_quality);
             await EncodingImage(output);
             MessageDialog finish = new MessageDialog("压缩已完成");
             await finish.ShowAsync();
@@ -180,7 +211,7 @@ namespace Compressor.Algorithms
             return result;
         }
 
-        void RestoreBlocks(List<int> dcList, List<int[]> acList, double[] dataArray, char componentType, byte downSampleType, int width, int height)
+        void RestoreBlocks(List<int> dcList, List<int[]> acList, double[] dataArray, char componentType, byte downSampleType, int width, int height, double quality=1.0)
         {
             // calculate block number
             const int blockSize = 8;
@@ -198,17 +229,7 @@ namespace Compressor.Algorithms
                     zigzag.Add(acList[i][j - 1]);
                 }
 
-                var block = ApplyIDCT(DequantizeBlock(UnZigzagOrdering(zigzag), componentType));
-                if (i == 0 && componentType != 'Y')
-                {
-                    Debug.WriteLine(componentType);
-                    Debug.WriteLine("unzigzag");
-                    PrintMatrix(UnZigzagOrdering(zigzag));
-                    Debug.WriteLine("dequantized");
-                    PrintMatrix(DequantizeBlock(UnZigzagOrdering(zigzag), componentType));
-                    Debug.WriteLine("idct");
-                    PrintMatrix(block);
-                }
+                var block = ApplyIDCT(DequantizeBlock(UnZigzagOrdering(zigzag), componentType, quality));
 
                 for (int y = 0; y < blockSize; y++)
                 {
@@ -256,8 +277,9 @@ namespace Compressor.Algorithms
                     {
                         using (var reader = new BinaryReader(inputStream))
                         {
-                            ushort width = reader.ReadUInt16(); // read width
-                            ushort height = reader.ReadUInt16(); // read height
+                            uint width = reader.ReadUInt32(); // read width
+                            uint height = reader.ReadUInt32(); // read height
+                            uint quality = reader.ReadUInt32(); // read quality
                             decodedImage.SetWH(width, height); // set width and height
                             byte colorEncoding = reader.ReadByte(); // read color encoding
                             decodedImage.SetDownSampleType(colorEncoding); // set color encoding
@@ -310,9 +332,9 @@ namespace Compressor.Algorithms
                             double[] uArray = new double[width * height];
                             double[] vArray = new double[width * height];
                             // YUV
-                            RestoreBlocks(dcListY, acListY, yArray, 'Y', 0x00, width, height);
-                            RestoreBlocks(dcListU, acListU, uArray, 'U', decodedImage.GetDownSampleType(), width, height);
-                            RestoreBlocks(dcListV, acListV, vArray, 'V', decodedImage.GetDownSampleType(), width, height);
+                            RestoreBlocks(dcListY, acListY, yArray, 'Y', 0x00, (int)width, (int)height, quality);
+                            RestoreBlocks(dcListU, acListU, uArray, 'U', decodedImage.GetDownSampleType(), (int)width, (int)height, quality);
+                            RestoreBlocks(dcListV, acListV, vArray, 'V', decodedImage.GetDownSampleType(), (int)width, (int)height, quality);
 
                             // debug
                             //await WriteDataToFileAsync(vArray, width, height, debugFile);
@@ -426,32 +448,8 @@ namespace Compressor.Algorithms
             return block;
         }
 
-        private double[,] DequantizeBlock(double[,] quantizedCoefficients, char type)
+        private double[,] DequantizeBlock(double[,] quantizedCoefficients, char type, double quality=1.0)
         {
-            int[,] quantizationMatrix = new int[,]
-            {
-                { 16, 11, 10, 16, 24, 40, 51, 61 },
-                { 12, 12, 14, 19, 26, 58, 60, 55 },
-                { 14, 13, 16, 24, 40, 57, 69, 56 },
-                { 14, 17, 22, 29, 51, 87, 80, 62 },
-                { 18, 22, 37, 56, 68, 109, 103, 77 },
-                { 24, 35, 55, 64, 81, 104, 113, 92 },
-                { 49, 64, 78, 87, 103, 121, 120, 101 },
-                { 72, 92, 95, 98, 112, 100, 103, 99 }
-            };
-
-            int[,] quantizationMatrixUv = new int[,]
-            {
-                { 17, 18, 24, 47, 99, 99, 99, 99 },
-                { 18, 21, 26, 66, 99, 99, 99, 99 },
-                { 24, 26, 56, 99, 99, 99, 99, 99 },
-                { 47, 66, 99, 99, 99, 99, 99, 99 },
-                { 99, 99, 99, 99, 99, 99, 99, 99 },
-                { 99, 99, 99, 99, 99, 99, 99, 99 },
-                { 99, 99, 99, 99, 99, 99, 99, 99 },
-                { 99, 99, 99, 99, 99, 99, 99, 99 }
-            };
-
             double[,] dequantizedCoefficients = new double[8, 8];
 
             for (int i = 0; i < 8; i++)
@@ -460,11 +458,11 @@ namespace Compressor.Algorithms
                 {
                     if (type == 'Y')
                     {
-                        dequantizedCoefficients[i, j] = quantizedCoefficients[i, j] * quantizationMatrix[i, j];
+                        dequantizedCoefficients[i, j] = quantizedCoefficients[i, j] * ((quantizationMatrix[i, j] * quality > 1.0) ? (quantizationMatrix[i, j] * quality) : 1);
                     }
                     else
                     {
-                        dequantizedCoefficients[i, j] = quantizedCoefficients[i, j] * quantizationMatrixUv[i, j];
+                        dequantizedCoefficients[i, j] = quantizedCoefficients[i, j] * ((quantizationMatrixUv[i, j] * quality > 1.0) ? (quantizationMatrixUv[i, j] * quality) : 1);
                     }
                 }
             }
@@ -511,33 +509,8 @@ namespace Compressor.Algorithms
 
         // ---------------------------
 
-        private double[,] QuantizeBlock(double[,] dctCoef, char type)
+        private double[,] QuantizeBlock(double[,] dctCoef, char type, double quality=1)
         {
-            // Standard JPEG Luminance Quantization Matrix for quality level around 50%
-            int[,] quantizationMatrix = new int[,]
-            {
-                { 16, 11, 10, 16, 24, 40, 51, 61 },
-                { 12, 12, 14, 19, 26, 58, 60, 55 },
-                { 14, 13, 16, 24, 40, 57, 69, 56 },
-                { 14, 17, 22, 29, 51, 87, 80, 62 },
-                { 18, 22, 37, 56, 68, 109, 103, 77 },
-                { 24, 35, 55, 64, 81, 104, 113, 92 },
-                { 49, 64, 78, 87, 103, 121, 120, 101 },
-                { 72, 92, 95, 98, 112, 100, 103, 99 }
-            };
-
-            int[,] quantizationMatrixUv = new int[,]
-            {
-                { 17, 18, 24, 47, 99, 99, 99, 99 },
-                { 18, 21, 26, 66, 99, 99, 99, 99 },
-                { 24, 26, 56, 99, 99, 99, 99, 99 },
-                { 47, 66, 99, 99, 99, 99, 99, 99 },
-                { 99, 99, 99, 99, 99, 99, 99, 99 },
-                { 99, 99, 99, 99, 99, 99, 99, 99 },
-                { 99, 99, 99, 99, 99, 99, 99, 99 },
-                { 99, 99, 99, 99, 99, 99, 99, 99 }
-            };
-
             double[,] quantizedCoefficients = new double[8, 8];
 
             for (int i = 0; i < 8; i++)
@@ -546,11 +519,11 @@ namespace Compressor.Algorithms
                 {
                     if (type == 'Y')
                     {
-                        quantizedCoefficients[i, j] = Math.Round(dctCoef[i, j] / quantizationMatrix[i, j]);
+                        quantizedCoefficients[i, j] = Math.Round(dctCoef[i, j] / ((quantizationMatrix[i, j] * quality > 1.0) ? (quantizationMatrix[i, j] * quality) : 1));
                     }
                     else
                     {
-                        quantizedCoefficients[i, j] = Math.Round(dctCoef[i, j] / quantizationMatrixUv[i, j]);
+                        quantizedCoefficients[i, j] = Math.Round(dctCoef[i, j] / ((quantizationMatrixUv[i, j] * quality > 1.0) ? (quantizationMatrixUv[i, j] * quality) : 1));
                     }
                 }
             }
@@ -644,8 +617,9 @@ namespace Compressor.Algorithms
         
         private void WriteImageHeader(BinaryWriter writer)
         {
-            writer.Write((ushort)img.GetWidth());
-            writer.Write((ushort)img.GetHeight());
+            writer.Write((uint)img.GetWidth());
+            writer.Write((uint)img.GetHeight());
+            writer.Write((uint)_quality);
             writer.Write(img.GetDownSampleType()); // 444:0x00 420:0x01
         }
         
@@ -693,7 +667,7 @@ namespace Compressor.Algorithms
             WriteBitString(writer, encodedData.ToString()); // Data
         }
 
-        private void DoCompress()
+        private void DoCompress(double quality = 1.0)
         {
             bool ifDownSampled = (img.GetDownSampleType() == 0x01) ? true : false;
             var yBlocks = GetDctBlocks(img.downsampledY, false);
@@ -705,35 +679,17 @@ namespace Compressor.Algorithms
             // Apply DCT and Quantization
             foreach (var block in yBlocks) // Y
             {
-                var quantizedBlock = QuantizeBlock(ApplyDct(block), 'Y');
+                var quantizedBlock = QuantizeBlock(ApplyDct(block), 'Y', quality);
                 yQuantizedBlocks.Add(quantizedBlock);
             }
             foreach (var block in uBlocks) // U
             {
-                var quantizedBlock = QuantizeBlock(ApplyDct(block), 'U');
-                if (block == uBlocks.First())
-                {
-                    Debug.WriteLine("Ori U");
-                    PrintArrayAsMatrix(block, 8, 8);
-                    Debug.WriteLine("DCT");
-                    PrintMatrix(ApplyDct(block));
-                    Debug.WriteLine("Quantize");
-                    PrintMatrix(quantizedBlock);
-                }
+                var quantizedBlock = QuantizeBlock(ApplyDct(block), 'U', quality);
                 uQuantizedBlocks.Add(quantizedBlock);
             }
             foreach (var block in vBlocks) // V
             {
-                var quantizedBlock = QuantizeBlock(ApplyDct(block), 'V');
-                if (block == vBlocks.First())
-                {
-                    Debug.WriteLine("Ori V");
-                    PrintArrayAsMatrix(block, 8, 8);
-                    Debug.WriteLine("DCT");
-                    PrintMatrix(ApplyDct(block));
-                    Debug.WriteLine("Quantize");
-                    PrintMatrix(quantizedBlock);
-                }
+                var quantizedBlock = QuantizeBlock(ApplyDct(block), 'V', quality);
                 vQuantizedBlocks.Add(quantizedBlock);
             }
             // luminance

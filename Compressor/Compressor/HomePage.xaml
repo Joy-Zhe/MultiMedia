@@ -16,16 +16,13 @@
         </Grid.RowDefinitions>
         
         
-        <!-- 欢迎文本 -->
         <TextBlock Margin="0, 0, 0, 20" Grid.Row="0" Text="Welcome to Compressor App!" HorizontalAlignment="Center" VerticalAlignment="Center" FontSize="24" FontWeight="Bold"/>
 
-        <!-- 欢迎说明 -->
         <TextBlock Grid.Row="1" 
                    Text="This app helps you compress your files quickly and efficiently. Get started by selecting a file or navigating through the options!" HorizontalAlignment="Center" VerticalAlignment="Center" TextWrapping="Wrap" 
                    Margin="60, 0, 60, 0"
                    MaxWidth="400"/>
 
-        <!-- 开始按钮 -->
-        <Button Grid.Row="2" Content="Get Started" HorizontalAlignment="Center"/>
+        <Button Grid.Row="2" Content="Get Started" HorizontalAlignment="Center" Click="Button_Click"/>
     </Grid>
 </Page>

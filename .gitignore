@@ -2,6 +2,7 @@
 .vs/
 bin/
 obj/
+.obsidian/
 .vscode/
 AppPackages/
 cmake-build-debug/

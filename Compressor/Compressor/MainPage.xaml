@@ -11,12 +11,12 @@
     <Grid>
         <Frame x:Name="MainFrame" />
         
-        <NavigationView x:Name="NavView" PaneDisplayMode="Top">
+        <NavigationView x:Name="NavView" PaneDisplayMode="Top" IsSettingsVisible="False">
             <NavigationView.MenuItems>
                 <NavigationViewItem Icon="Home" Content="Home" Tag="home"/>
                 <NavigationViewItem Icon="Camera" Content="压缩" Tag="image" />
                 <NavigationViewItem Icon="Camera"  Content="解压" Tag="imageDeComp" />
-                <NavigationViewItem Icon="Document" Content="文本" Tag="text" />
+                <!--<NavigationViewItem Icon="Document" Content="文本" Tag="text" />-->
             </NavigationView.MenuItems>
         </NavigationView>
     </Grid>

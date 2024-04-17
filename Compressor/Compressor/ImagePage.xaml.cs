@@ -20,6 +20,7 @@ using Windows.Storage.Pickers;
 using Windows.UI.ViewManagement;
 using Compressor.Dependencies;
 using Compressor.Algorithms;
+using System.Diagnostics;
 
 // https://go.microsoft.com/fwlink/?LinkId=234238 上介绍了“空白页”项模板
 
@@ -34,6 +35,7 @@ namespace Compressor
         string outputPath = null;
         StorageFile inputFile = null;
         StorageFile outputFile = null;
+        double _quality = 1.0;
 
         //ImageCompressor compressor = new ImageCompressor();
 
@@ -78,6 +80,7 @@ namespace Compressor
         private async void imgCompress_Click(object sender, RoutedEventArgs e)
         {
             ImageCompressor compressor = new ImageCompressor();
+            compressor.SetQuality(_quality);
             await compressor.Compress(inputFile, outputFile, 0x00);
         }
 
@@ -105,17 +108,23 @@ namespace Compressor
             }
         }
 
-        private async void ImgDeCompress_OnClick(object sender, RoutedEventArgs e)
-        {
-            ImageCompressor compressor = new ImageCompressor();
-            await compressor.DeCompress(inputFile, outputFile);
-        }
-
         private async void ImgCompress420_OnClick(object sender, RoutedEventArgs e)
         {
             ImageCompressor compressor = new ImageCompressor();
+            compressor.SetQuality(_quality);
             await compressor.Compress(inputFile, outputFile, 0x01);
         }
 
+        private void Slider_ValueChanged(object sender, RangeBaseValueChangedEventArgs e)
+        {
+            this._quality = e.NewValue;
+            Debug.WriteLine(_quality);
+        }
+
+        private void Button_Click(object sender, RoutedEventArgs e)
+        {
+            this._quality = 1.0;
+            slider.Value = _quality;
+        }
     }
 }
