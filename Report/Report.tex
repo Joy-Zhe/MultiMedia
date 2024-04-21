@@ -20,7 +20,7 @@
 
 % 设置标题和作者
 \title{Multimedia Technologies}
-\author{郑乔尹}
+\author{郑乔尹\ 骆一博\ 吴杭尧}
 \date{\today}
 
 \begin{document}
@@ -35,11 +35,11 @@
         \hline
         序号 & 学号 & 专业班级 & 姓名 & 性别 & 分工 \\
         \hline
-        & 3210104169 & 计科2102 & 郑乔尹 & 男 & 全部代码编写；展示；报告编写 \\
+        1 & 3210104169 & 计科2102 & 郑乔尹 & 男 & 全部代码编写；展示；报告编写 \\
         \hline
-        & & & 骆一博 & 男 & PPT制作，报告编写 \\
+        2 & 3210102326 & 计科2105 & 骆一博 & 男 & PPT制作，程序测试 \\
         \hline
-        & & & 吴杭尧 & 男 & 报告编写 \\
+        3 & 3210103401 & 计科2104 & 吴杭尧 & 男 & 程序测试 \\
         \hline
     \end{tabular}
     \caption{Members}
@@ -51,15 +51,15 @@
 \subsection{选题}
 
 \begin{itemize}
-    \item 基于DCT变换的图像有损压缩与解压
+    \item 类JPEG的图像有损压缩与解压
 \end{itemize}
 
 \subsection{工作简介}
 
 \begin{itemize}
-    \item 有损压缩：通过对一张输入图像进行下采样、分块、DCT变换、量化、Zigzag扫描、Huffman编码，实现对图像的有损压缩。实现了两种类型的下采样，支持可调压缩比，使用jpeg标准的量化表。
+    \item 有损压缩：通过对一张输入图像进行下采样、分块、DCT变换、量化、Zigzag扫描、Huffman编码，实现对图像的有损压缩。实现了两种类型的下采样，支持可调压缩比，使用JPEG标准的量化表。
     \item 解压：通过对压缩后的数据进行Huffman解码、Zigzag逆扫描、逆量化、逆DCT变换、上采样，实现对图像的解压。
-    \item 压缩文件(`.hufimg`)的文件结构设计
+    \item 压缩文件(.hufimg)的文件结构设计
 \end{itemize}
 
 \subsection{开发环境}
@@ -73,7 +73,7 @@
 \subsection{运行要求}
 
 \begin{itemize}
-    \item 操作系统：Windows 10/11 22H2及以上
+    \item 操作系统：Windows 10/11 21H2及以上
 \end{itemize}
 
 \section{Technical Details}
@@ -219,6 +219,16 @@ F(u,v) = \frac{1}{\sqrt{MN}} \sum_{x=0}^{M-1} \sum_{y=0}^{N-1} f(x,y) \cos\left(
 
 
 经过离散余弦变换，得到的系数矩阵中的每个系数都对应着图像中的特定频率成分。这些系数可以分为两类：DC系数和AC系数。
+
+如果要还原这个矩阵，则需要使用DCT逆变换。DCT逆变换是将频域的图像转换回空间域的方法，通过DCT逆变换，可以从频域系数恢复原始图像。
+
+对应的二维DCT逆变换表达式如下：
+\[
+f(x,y) = \frac{1}{\sqrt{MN}} \sum_{u=0}^{M-1} \sum_{v=0}^{N-1} F(u,v) \cos\left(\frac{\pi(2x+1)u}{2M}\right) \cos\left(\frac{\pi(2y+1)v}{2N}\right)
+\]
+
+其中，$f(x,y)$表示逆变换后的空间域像素值，$F(u,v)$表示频域系数，$M$和$N$分别表示图像的宽度和高度，$x$和$y$分别表示空间域的横向和纵向坐标。
+
 
 \subsubsection{DC系数}
 
@@ -525,103 +535,311 @@ Huffman编码是一种基于字符出现频率的编码方式，通过统计字�
 \subsection{解压}
 
 解压的过程是压缩的逆过程，主要包括Huffman解码、DC/AC系数解码、zigzag还原、解量化、逆DCT变换、色彩空间转换等步骤。
+首先从文件中重新读取出上述数据。
 
-\subsection{DCT逆变换}
+\subsection{Huffman解码}
 
-DCT逆变换是将频域的图像转换回空间域的方法，通过DCT逆变换，可以从频域系数恢复原始图像。
+根据文件头中的Huffman编码表，对压缩后的数据进行解码，得到各个通道DC系数的差分编码序列和AC系数的游程编码序列。
 
-本实验采用了二维DCT逆变换，变换表达式如下：
+Huffman编码是没有歧义的，即不会出现一个编码是另一个编码的前缀的情况，因此可以通过前缀匹配的方式进行解码。每匹配到一个编码表中存在的串就可以完成一个字符的解码。
 
-\[
-f(x,y) = \frac{1}{\sqrt{MN}} \sum_{u=0}^{M-1} \sum_{v=0}^{N-1} F(u,v) \cos\left(\frac{\pi(2x+1)u}{2M}\right) \cos\left(\frac{\pi(2y+1)v}{2N}\right)
-\]
+\subsection{DC/AC系数解码与图像数据的还原}
 
-其中，$f(x,y)$表示逆变换后的空间域像素值，$F(u,v)$表示频域系数，$M$和$N$分别表示图像的宽度和高度，$x$和$y$分别表示空间域的横向和纵向坐标。
+对从压缩图像中提取的数据进行解码，并重新构建图像的每个8x8像素块。
 
+根据下采样方式确定图像被分割成多少个8x8块。如果处理的是亮度分量或没有下采样，块的尺寸基于原始宽度和高度。如果处理的是色度分量且有下采样，块的尺寸是宽度和高度的一半。
+
+接下来循环处理每个块：
+
+1. 计算当前块在图像中的位置。
+
+2. 创建 zigzag 列表，包含DC分量和63个AC分量
+
+3. 使用逆量化和逆Zigzag顺序处理，然后应用逆离散余弦变换（IDCT）来恢复块的像素值。
+
+4. 遍历当前块的每个像素，并根据块在图像中的位置计算出该像素在原始图像中的索引。
+
+5. 如果正在处理色度分量且有下采样，需要调整像素索引以映射到正确的图像位置。
+
+6. 将计算出的像素值存储并进行边界检查
+
+\FloatBarrier
+\begin{algorithm}
+    \caption{Restore Image Blocks}
+    \begin{algorithmic}[1] % 数字 1 表示行号从 1 开始且每行显示行号
+    \Procedure{RestoreBlocks}{$dcList, acList, dataArray, componentType, downSampleType, width, height, quality=1.0$}
+        \State $blockSize \gets 8$
+        \State $blockWidthNumber \gets \lceil (downSampleType = 0x00 ? width : width / 2) / blockSize \rceil$
+        \State $blockHeightNumber \gets \lceil (downSampleType = 0x00 ? height : height / 2) / blockSize \rceil$
+        \State $blockNumber \gets blockHeightNumber \times blockWidthNumber$
+        \For{$i \gets 0$ \textbf{to} $blockNumber-1$}
+            \State $blockY \gets (i \div blockWidthNumber) \times blockSize$
+            \State $blockX \gets (i \mod blockWidthNumber) \times blockSize$
+            \State $zigzag \gets [dcList[i]] + acList[i]$
+            \State $block \gets ApplyIDCT(DequantizeBlock(UnZigzagOrdering(zigzag), componentType, quality))$
+            \For{each $y, x$ in $blockSize \times blockSize$}
+                \State Calculate pixel indices $pixelX, pixelY$
+                \State $pixelIndex \gets pixelY \times width + pixelX$
+                \If{$downSampleType = 0x01$ \textbf{and} $componentType \neq 'Y'$}
+                    \State Adjust indices for chrominance downsampling
+                \EndIf
+                \State $dataArray[pixelIndex] \gets block[y, x]$ \textbf{if} in bounds
+            \EndFor
+        \EndFor
+    \EndProcedure
+    \end{algorithmic}
+\end{algorithm}
+\FloatBarrier
 
 
 \section{Experiment Results}
 
+\subsection{环境要求}
+\begin{itemize}
+    \item Windows10/11 21H2及以上(本人使用Windows11 23H2)
+\end{itemize}
+
+\subsection{安装}
+
+\subsubsection{直接安装}
+\begin{enumerate}
+    \item 右键\texttt{Release}目录下应用程序文件夹中的\texttt{Install.ps1}, 使用PowerShell运行, 应用程序将会作为UWP应用安装在Windows中
+    \begin{figure}[H]
+        \centering
+        \includegraphics[width=0.6\linewidth]{assets/install.png}
+        \caption{安装}
+    \end{figure}
+    \item 在开始菜单中找到或搜索\texttt{Compressor}, 即可找到安装后的应用程序
+    \begin{figure}[H]
+        \centering
+        \includegraphics[width=0.6\linewidth]{assets/image.png}
+        \caption{找到应用程序}
+    \end{figure}
+\end{enumerate}
+
+\subsubsection{源码编译运行}
+\begin{itemize}
+    \item 推荐使用Visual Studio 2022打开\texttt{src/Compressor/}目录下的solution文件\texttt{Compressor.sln}, 要求VS已经安装了C\#/.NET相关的依赖(图中的通用Windows平台开发为必要依赖)
+    \begin{figure}[H]
+        \centering
+        \includegraphics[width=0.6\linewidth]{assets/image-1.png}
+        \caption{Visual Studio依赖设置}
+    \end{figure}
+\end{itemize}
+
+\subsection{使用}
+
+\subsubsection{压缩}
+\begin{enumerate}
+    \item 单击\texttt{Get Started}按钮或使用上方导航栏可以进入压缩页面
+    \begin{figure}[H]
+        \centering
+        \includegraphics[width=0.6\linewidth]{assets/image-2.png}
+        \caption{进入压缩页面}
+    \end{figure}
+    \item 点击选择图像选择需要压缩的图像，然后点击保存地址选择压缩后的图像保存地址
+    \begin{figure}[H]
+        \centering
+        \includegraphics[width=0.6\linewidth]{assets/image-3.png}
+        \caption{选择图像和保存地址}
+    \end{figure}
+    \item 压缩系数可以进行调整，也可以保持默认的1，点击压缩，选择希望使用的下采样方式即可开始压缩
+    \begin{figure}[H]
+        \centering
+        \includegraphics[width=0.3\linewidth]{assets/image-5.png}
+        \caption{调整压缩系数和下采样方式}
+    \end{figure}
+    \item 压缩完成会出现弹窗通知
+\end{enumerate}
+
+\subsubsection{解压}
+\begin{enumerate}
+    \item 单击导航栏上的解压进入解压界面
+    \begin{figure}[H]
+        \centering
+        \includegraphics[width=0.6\linewidth]{assets/image-4.png}
+        \caption{解压界面}
+    \end{figure}
+    \item 选择需要解压的图像(\texttt{.hufimg})，然后选择解压后的图像保存地址
+    \item 点击解压，等待解压结束弹窗即可
+\end{enumerate}
+
 \subsection{压缩效果}
 
+\subsubsection{压缩比展示}
+
+1. 以下是一张测试图像，采用YUV420下采样方式，压缩系数为1的压缩效果：
 \FloatBarrier
 \begin{figure}[htbp]
     \centering
     \begin{minipage}[t]{0.45\textwidth}
         \centering
-        \includegraphics[width=\textwidth]{assets/Test1.bmp}
-        \caption{Origin Image}
+        \includegraphics[width=\textwidth]{assets/Test1.png}
+        \caption{BMP, 1170*1620, 5557KB}
     \end{minipage}
-    % \hfill  % 添加空间
-    % \begin{minipage}[t]{0.45\textwidth}
-    %     \centering
-    %     \includegraphics[width=\textwidth]{assets/Test1_420.bmp}
-    %     \caption{Compressed Image}
-    % \end{minipage}
+    \hfill  % 添加空间
+    \begin{minipage}[t]{0.45\textwidth}
+        \centering
+        \includegraphics[width=\textwidth]{assets/Test1_420.png}
+        \caption{4:2:0, 压缩系数1, 69KB}
+    \end{minipage}
 \end{figure}
 \FloatBarrier
+可以看到压缩后的图像与原图基本没有差别，但是文件大小大大减小，压缩比达到了81:1，压缩后的图像大小仅为原始图像的1.24\%。
+
+2. 以下依旧是一张非真实图片，但是相比第一张，图像的细节稍微增加：
+\FloatBarrier
+\begin{figure}[htbp]
+    \centering
+    \begin{minipage}[t]{0.45\textwidth}
+        \centering
+        \includegraphics[width=\textwidth]{assets/Test2.png}
+        \caption{BMP, 1920*1080, 6076KB}
+    \end{minipage}
+    \hfill  % 添加空间
+    \begin{minipage}[t]{0.45\textwidth}
+        \centering
+        \includegraphics[width=\textwidth]{assets/Test2_420.png}
+        \caption{YUV420, 压缩系数1, 124KB}
+    \end{minipage}
+\end{figure}
+\FloatBarrier
+可以看到压缩效果大体上十分不错，达到了49:1的压缩率，压缩后的图像为原图大小的2.04\%，但是边缘部分出现比较明显的块效应：
+\begin{figure}[htbp]
+    \centering
+    \begin{minipage}[t]{0.45\textwidth}
+        \centering
+        \includegraphics[width=\textwidth]{assets/2_block.png}
+        \caption{原图的嘴附近无块效应}
+    \end{minipage}
+    \hfill  % 添加空间
+    \begin{minipage}[t]{0.45\textwidth}
+        \centering
+        \includegraphics[width=\textwidth]{assets/2_block_compressed.png}
+        \caption{块效应}
+    \end{minipage}
+\end{figure}
+\FloatBarrier
+这是因为在处理图象时，将其分为了若干个$8\times 8$的小块导致，但是在压缩系数较低的情况下，块效应在视觉上并不明显，需要放大才能清楚的观测。
+
+3. 以下是一张真实场景的图像，摄于日出的舟山，由于日出时的光线较弱，图像的细节较少，依旧存在大量的相近颜色，适合进行压缩：
+\FloatBarrier
+\begin{figure}[htbp]
+    \centering
+    \begin{minipage}[t]{0.45\textwidth}
+        \centering
+        \includegraphics[width=\textwidth]{assets/Test3.png}
+        \caption{BMP, 4032*3024, 35722KB}
+    \end{minipage}
+    \hfill  % 添加空间
+    \begin{minipage}[t]{0.45\textwidth}
+        \centering
+        \includegraphics[width=\textwidth]{assets/Test3_420.png}
+        \caption{YUV420, 压缩系数1, 407KB}
+    \end{minipage}
+\end{figure}
+\FloatBarrier
+可以看到压缩效果相比上一张非现实图像甚至更好，压缩比达到了87:1，压缩后的图像大小仅为原始图像的1.14\%。
+
+4. 以下是一张真实场景的图像，摄于正午的龙井，由于正午时分的光线较强，图像的细节丰富：
+\FloatBarrier
+\begin{figure}[htbp]
+    \centering
+    \begin{minipage}[t]{0.45\textwidth}
+        \centering
+        \includegraphics[width=\textwidth]{assets/Test4.png}
+        \caption{BMP, 4032*3024, 35722KB}
+    \end{minipage}
+    \hfill  % 添加空间
+    \begin{minipage}[t]{0.45\textwidth}
+        \centering
+        \includegraphics[width=\textwidth]{assets/Test4_420.png}
+        \caption{YUV420, 压缩系数1, 1041KB}
+    \end{minipage}
+\end{figure}
+\FloatBarrier
+因为细节较多，图像的熵较大，相比上一张日出时的图像，压缩比就没有那么高，但是依旧达到了34:1，压缩后的图像大小仅为原始图像的2.91\%。
+
+\subsubsection{压缩系数对图像压缩质量的影响}
+
+以下是图像压缩系数从1到10，压缩后的图像大小展示，文件名对应选取的压缩系数：
 
 \FloatBarrier
 \begin{figure}[htbp]
     \centering
     \begin{minipage}[t]{0.45\textwidth}
         \centering
-        \includegraphics[width=\textwidth]{assets/Test2.bmp}
-        \caption{Origin Image}
-        \label{fig:example1}
+        \includegraphics[width=\textwidth]{assets/compare.png}
+        \caption{压缩后大小}
     \end{minipage}
-    % \hfill  % 添加空间
-    % \begin{minipage}[t]{0.45\textwidth}
-    %     \centering
-    %     \includegraphics[width=\textwidth]{assets/Test2_420.bmp}
-    %     \caption{Compressed Image}
-    %     \label{fig:example2}
-    % \end{minipage}
 \end{figure}
 \FloatBarrier
 
-% \FloatBarrier
-% \begin{figure}[htbp]
-%     \centering
-%     \begin{minipage}[t]{0.45\textwidth}
-%         \centering
-%         \includegraphics[width=\textwidth]{assets/Test3.bmp}
-%         \caption{Origin Image}
-%         \label{fig:example1}
-%     \end{minipage}
-%     \hfill  % 添加空间
-%     \begin{minipage}[t]{0.45\textwidth}
-%         \centering
-%         \includegraphics[width=\textwidth]{assets/Test3_420.bmp}
-%         \caption{Compressed Image}
-%         \label{fig:example2}
-%     \end{minipage}
-% \end{figure}
-% \FloatBarrier
+以下是压缩效果展示：
 
-% \FloatBarrier
-% \begin{figure}[htbp]
-%     \centering
-%     \begin{minipage}[t]{0.45\textwidth}
-%         \centering
-%         \includegraphics[width=\textwidth, bb=0 0 0 0]{assets/Test4.bmp}
-%         \caption{Origin Image}
-%         \label{fig:example1}
-%     \end{minipage}
-%     \hfill  % 添加空间
-%     \begin{minipage}[t]{0.45\textwidth}
-%         \centering
-%         \includegraphics[width=\textwidth]{assets/Test4_420.bmp}
-%         \caption{Compressed Image}
-%         \label{fig:example2}
-%     \end{minipage}
-% \end{figure}
-% \FloatBarrier
+\FloatBarrier
+\begin{figure}[htbp]
+    \centering
+    \begin{minipage}[t]{0.45\textwidth}
+        \centering
+        \includegraphics[width=\textwidth]{assets/Test4.png}
+        \caption{BMP, 4032*3024, 35722KB}
+    \end{minipage}
+    \hfill  % 添加空间
+    \begin{minipage}[t]{0.45\textwidth}
+        \centering
+        \includegraphics[width=\textwidth]{assets/Test4_420.png}
+        \caption{YUV420, 压缩系数1, 1041KB}
+    \end{minipage}
+    \hfill  % 添加空间
+    \begin{minipage}[t]{0.45\textwidth}
+        \centering
+        \includegraphics[width=\textwidth]{assets/2.png}
+        \caption{YUV420, 压缩系数2, 659KB}
+    \end{minipage}
+    \hfill  % 添加空间
+    \begin{minipage}[t]{0.45\textwidth}
+        \centering
+        \includegraphics[width=\textwidth]{assets/3.png}
+        \caption{YUV420, 压缩系数3, 500KB}
+    \end{minipage}
+    \hfill  % 添加空间
+    \begin{minipage}[t]{0.45\textwidth}
+        \centering
+        \includegraphics[width=\textwidth]{assets/4.png}
+        \caption{YUV420, 压缩系数4, 409KB}
+    \end{minipage}
+    \hfill  % 添加空间
+    \begin{minipage}[t]{0.45\textwidth}
+        \centering
+        \includegraphics[width=\textwidth]{assets/6.png}
+        \caption{YUV420, 压缩系数6, 311KB}
+    \end{minipage}
+    \hfill  % 添加空间
+    \begin{minipage}[t]{0.45\textwidth}
+        \centering
+        \includegraphics[width=\textwidth]{assets/8.png}
+        \caption{YUV420, 压缩系数8, 245KB}
+    \end{minipage}
+    \hfill  % 添加空间
+    \begin{minipage}[t]{0.45\textwidth}
+        \centering
+        \includegraphics[width=\textwidth]{assets/10.png}
+        \caption{YUV420, 压缩系数10, 206KB}
+    \end{minipage}
+\end{figure}
+\FloatBarrier
+
+压缩比依次为34:1, 54:1, 71:1, 87:1, 115:1, 146:1, 173:1，可以看到随着压缩系数的增加，压缩比逐渐增大，但是压缩后的图像质量也逐渐下降，尤其是在压缩系数大于2之后，图像的细节逐渐丢失，出现了明显的失真。
+主要体现在图像的天空部分，可以看到逐渐出现分层，而且在图中人物以及房屋的白色部分也逐渐出现色彩失真。
+
+权衡之下，选取1-2之间的压缩比比较合适，既能保证图像的质量，又能达到较高的压缩比。实际上，对于不同的图像，应当有不同的压缩比选取方式。
 
 % 参考文献
 \begin{thebibliography}{9}
-\bibitem{ref1} Author. Title. Journal, Year.
-\bibitem{ref2} Author. Title. Conference, Year.
+\bibitem{ref1} G. K. Wallace, "The JPEG still picture compression standard," in IEEE Transactions on Consumer Electronics, vol. 38, no. 1, pp. xviii-xxxiv, Feb. 1992, doi: 10.1109/30.125072.
+\bibitem{ref2} 《多媒体技术教程》第二版
+\bibitem{ref3} 课程PPT
 \end{thebibliography}
 
 \end{document}

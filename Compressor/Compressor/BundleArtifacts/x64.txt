@@ -1,6 +1,6 @@
-MainPackage=D:\code\Courses\MultiMedia\Compressor\Compressor\bin\x64\Release\Compressor_1.0.4.0_x64.msix
-SymbolPackage=D:\code\Courses\MultiMedia\Compressor\Compressor\obj\x64\Release\Symbols\Compressor_1.0.4.0_x64.appxsym
-ResourcePack=D:\code\Courses\MultiMedia\Compressor\Compressor\bin\x64\Release\Compressor_1.0.4.0_scale-100.msix
-ResourcePack=D:\code\Courses\MultiMedia\Compressor\Compressor\bin\x64\Release\Compressor_1.0.4.0_scale-125.msix
-ResourcePack=D:\code\Courses\MultiMedia\Compressor\Compressor\bin\x64\Release\Compressor_1.0.4.0_scale-150.msix
-ResourcePack=D:\code\Courses\MultiMedia\Compressor\Compressor\bin\x64\Release\Compressor_1.0.4.0_scale-400.msix
+MainPackage=D:\code\Courses\MultiMedia\Compressor\Compressor\bin\x64\Release\Compressor_1.0.5.0_x64.msix
+SymbolPackage=D:\code\Courses\MultiMedia\Compressor\Compressor\obj\x64\Release\Symbols\Compressor_1.0.5.0_x64.appxsym
+ResourcePack=D:\code\Courses\MultiMedia\Compressor\Compressor\bin\x64\Release\Compressor_1.0.5.0_scale-100.msix
+ResourcePack=D:\code\Courses\MultiMedia\Compressor\Compressor\bin\x64\Release\Compressor_1.0.5.0_scale-125.msix
+ResourcePack=D:\code\Courses\MultiMedia\Compressor\Compressor\bin\x64\Release\Compressor_1.0.5.0_scale-150.msix
+ResourcePack=D:\code\Courses\MultiMedia\Compressor\Compressor\bin\x64\Release\Compressor_1.0.5.0_scale-400.msix
